@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card, InputNumber } from 'antd';
 import { PlusOutlined, DeleteOutlined, HomeOutlined, SearchOutlined } from '@ant-design/icons';
 import { useShelter } from '../context/ShelterContext';
+import { useTableSearch } from '../utils/tableUtils';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -9,6 +10,7 @@ const { Option } = Select;
 const Shelters = () => {
     // Get shelter data and management functions from ShelterContext
     const { shelters, addShelter, updateShelterStatus, deleteShelter } = useShelter();
+    const getColumnSearchProps = useTableSearch();
 
     // UI state for Modal visibility and Search functionality
     const [isModalVisible, setIsModalVisible] = useState(false);
@@ -56,11 +58,13 @@ const Shelters = () => {
             title: 'Name',
             dataIndex: 'name',
             key: 'name',
+            ...getColumnSearchProps('name', 'Name'),
         },
         {
             title: 'Location',
             dataIndex: 'location',
             key: 'location',
+            ...getColumnSearchProps('location', 'Location'),
         },
         {
             title: 'Contact Number',

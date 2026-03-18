@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card } from 'antd';
 import { PlusOutlined, DeleteOutlined, UserAddOutlined, SearchOutlined } from '@ant-design/icons';
 import { useUser } from '../context/UserContext';
+import { useTableSearch } from '../utils/tableUtils';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -9,6 +10,7 @@ const { Option } = Select;
 const Users = () => {
     // Access user management functions from UserContext
     const { users, addUser, updateUser, deleteUser } = useUser();
+    const getColumnSearchProps = useTableSearch();
 
     // State to control the visibility of the "Add User" modal
     const [isModalVisible, setIsModalVisible] = useState(false);
@@ -59,16 +61,19 @@ const Users = () => {
             title: 'Name',
             dataIndex: 'name',
             key: 'name',
+            ...getColumnSearchProps('name', 'Name'),
         },
         {
             title: 'Email',
             dataIndex: 'email',
             key: 'email',
+            ...getColumnSearchProps('email', 'Email'),
         },
         {
             title: 'Role',
             dataIndex: 'role',
             key: 'role',
+            ...getColumnSearchProps('role', 'Role'),
             render: (role) => {
                 // Color-code roles for better visibility
                 let color = role === 'Admin' ? 'red' : role === 'Co-Admin' ? 'blue' : 'green';
