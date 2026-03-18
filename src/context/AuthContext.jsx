@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 
-// Create the context to hold the authentication state
+// Context to hold the authentication state
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
@@ -9,7 +9,7 @@ export const AuthProvider = ({ children }) => {
     // State to manage loading status during initial check
     const [loading, setLoading] = useState(true);
 
-    // Effect to check if a user is already logged in (persisted in localStorage)
+    // Effect to check if a user is already logged in
     useEffect(() => {
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
@@ -18,27 +18,28 @@ export const AuthProvider = ({ children }) => {
         setLoading(false); // Finished checking
     }, []);
 
-    // Function to handle mock login
+    // Function to handle login
     const login = async (email, password) => {
         // Return a Promise to simulate an API call delay
         return new Promise((resolve, reject) => {
             setTimeout(() => {
-                // In a real app, you would validate credentials with a backend here
+                if (email === 'admin@gmail.com') {
+                    const userData = {
+                        email,
+                        name: 'Admin User',
+                        role: 'admin',
+                        contact: '0771234567',
+                        password: password
+                    };
 
-                // Creating a mock user object
-                const userData = {
-                    email,
-                    name: 'Admin User',
-                    role: 'admin',
-                    contact: '0771234567',
-                    password: password // IMPORTANT: Never store passwords in plain text in a real app!
-                };
+                    // Update state and persist to localStorage
+                    setUser(userData);
+                    localStorage.setItem('user', JSON.stringify(userData));
 
-                // Update state and persist to localStorage
-                setUser(userData);
-                localStorage.setItem('user', JSON.stringify(userData));
-
-                resolve(userData);
+                    resolve(userData);
+                } else {
+                    reject(new Error('Invalid email or password'));
+                }
             }, 500); // Simulate network delay
         });
     };
