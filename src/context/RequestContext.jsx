@@ -63,7 +63,7 @@ export const RequestProvider = ({ children }) => {
     // Mock Help Requests
     const [requests, setRequests] = useState([
         {
-            id: 1,
+            id: 100001,
             name: 'Kamal Perera',
             reminder: 2,
             emergencyType: ['rescue', 'medical'],
@@ -71,12 +71,12 @@ export const RequestProvider = ({ children }) => {
             numberOfPeople: 4,
             moreDetails: 'Trapped due to flood water rising.',
             contactNumber: '0771234567',
-            location: '6.9271, 79.8612', // Colombo approx
+            location: 'Colombo 10', // Colombo approx
             status: 'pending',
             timestamp: new Date().toISOString(),
         },
         {
-            id: 2,
+            id: 100002,
             name: 'Nimali Silva',
             reminder: 0,
             emergencyType: ['food'],
@@ -89,7 +89,7 @@ export const RequestProvider = ({ children }) => {
             timestamp: new Date(Date.now() - 86400000).toISOString(), // Yesterday
         },
         {
-            id: 3,
+            id: 100003,
             name: 'Ruwan Kumara',
             reminder: 5,
             emergencyType: ['shelter'],
@@ -102,7 +102,7 @@ export const RequestProvider = ({ children }) => {
             timestamp: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
         },
         {
-            id: 4,
+            id: 100004,
             name: 'Priyanka Dias',
             reminder: 0,
             emergencyType: ['food'],
