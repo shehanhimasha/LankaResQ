@@ -64,6 +64,8 @@ export const RequestProvider = ({ children }) => {
     const [requests, setRequests] = useState([
         {
             id: 1,
+            name: 'Kamal Perera',
+            reminder: 2,
             emergencyType: ['rescue', 'medical'],
             urgencyLevel: 'high',
             numberOfPeople: 4,
@@ -75,24 +77,41 @@ export const RequestProvider = ({ children }) => {
         },
         {
             id: 2,
+            name: 'Nimali Silva',
+            reminder: 0,
             emergencyType: ['food'],
             urgencyLevel: 'medium',
             numberOfPeople: 10,
             moreDetails: 'Need dry rations for 3 families.',
             contactNumber: '0719876543',
             location: 'Galle',
-            status: 'processing',
+            status: 'pending',
             timestamp: new Date(Date.now() - 86400000).toISOString(), // Yesterday
         },
         {
             id: 3,
+            name: 'Ruwan Kumara',
+            reminder: 5,
             emergencyType: ['shelter'],
             urgencyLevel: 'low',
             numberOfPeople: 2,
             moreDetails: 'Roof damaged.',
             contactNumber: '0755555555',
             location: 'Kandy',
-            status: 'success',
+            status: 'pending',
+            timestamp: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+        },
+        {
+            id: 4,
+            name: 'Priyanka Dias',
+            reminder: 0,
+            emergencyType: ['food'],
+            urgencyLevel: 'medium',
+            numberOfPeople: 12,
+            moreDetails: 'Need dry rations for 2 families.',
+            contactNumber: '0757775555',
+            location: 'Beruwala',
+            status: 'pending',
             timestamp: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
         },
     ]);
@@ -105,12 +124,21 @@ export const RequestProvider = ({ children }) => {
         setRequests(requests.map(req => req.id === id ? { ...req, status: newStatus } : req));
     };
 
+    const updateRequest = (updatedRequest) => {
+        setRequests(requests.map(req => req.id === updatedRequest.id ? updatedRequest : req));
+    };
+
     const addRequest = (newRequest) => {
-        setRequests([...requests, { ...newRequest, id: requests.length + 1, status: 'pending', timestamp: new Date().toISOString() }]);
+        const nextId = requests.length > 0 ? Math.max(...requests.map(r => r.id)) + 1 : 1;
+        setRequests([...requests, { ...newRequest, id: nextId, status: 'pending', timestamp: new Date().toISOString() }]);
     }
 
+    const deleteRequest = (id) => {
+        setRequests(requests.filter(req => req.id !== id));
+    };
+
     return (
-        <RequestContext.Provider value={{ formSchema, updateSchema, requests, updateRequestStatus, addRequest }}>
+        <RequestContext.Provider value={{ formSchema, updateSchema, requests, updateRequestStatus, updateRequest, addRequest, deleteRequest }}>
             {children}
         </RequestContext.Provider>
     );
