@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card, InputNumber } from 'antd';
 import { PlusOutlined, DeleteOutlined, HomeOutlined, SearchOutlined } from '@ant-design/icons';
 import { useShelter } from '../context/ShelterContext';
-import { useTableSearch } from '../utils/tableUtils';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -10,7 +9,6 @@ const { Option } = Select;
 const Shelters = () => {
     // Get shelter data and management functions from ShelterContext
     const { shelters, addShelter, updateShelterStatus, deleteShelter } = useShelter();
-    const getColumnSearchProps = useTableSearch();
 
     // UI state for Modal visibility and Search functionality
     const [isModalVisible, setIsModalVisible] = useState(false);
@@ -58,13 +56,17 @@ const Shelters = () => {
             title: 'Name',
             dataIndex: 'name',
             key: 'name',
-            ...getColumnSearchProps('name', 'Name'),
+            filters: Array.from(new Set(shelters.map(s => s.name))).map(n => ({ text: n, value: n })),
+            onFilter: (value, record) => record.name === value,
+            filterSearch: true,
         },
         {
             title: 'Location',
             dataIndex: 'location',
             key: 'location',
-            ...getColumnSearchProps('location', 'Location'),
+            filters: Array.from(new Set(shelters.map(s => s.location))).map(l => ({ text: l, value: l })),
+            onFilter: (value, record) => record.location === value,
+            filterSearch: true,
         },
         {
             title: 'Contact Number',
@@ -80,6 +82,12 @@ const Shelters = () => {
             title: 'Status',
             dataIndex: 'status',
             key: 'status',
+            filters: [
+                { text: 'Available', value: 'Available' },
+                { text: 'Full', value: 'Full' },
+                { text: 'Not Available', value: 'Not Available' },
+            ],
+            onFilter: (value, record) => record.status === value,
             render: (status, record) => (
                 // Dropdown to update shelter availability status
                 <Select
