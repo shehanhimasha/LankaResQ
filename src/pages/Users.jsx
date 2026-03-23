@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card } from 'antd';
 import { PlusOutlined, DeleteOutlined, UserAddOutlined, SearchOutlined } from '@ant-design/icons';
 import { useUser } from '../context/UserContext';
-import { useTableSearch } from '../utils/tableUtils';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -10,7 +9,6 @@ const { Option } = Select;
 const Users = () => {
     // Access user management functions from UserContext
     const { users, addUser, updateUser, deleteUser } = useUser();
-    const getColumnSearchProps = useTableSearch();
 
     // State to control the visibility of the "Add User" modal
     const [isModalVisible, setIsModalVisible] = useState(false);
@@ -61,19 +59,28 @@ const Users = () => {
             title: 'Name',
             dataIndex: 'name',
             key: 'name',
-            ...getColumnSearchProps('name', 'Name'),
+            filters: Array.from(new Set(users.map(u => u.name))).map(n => ({ text: n, value: n })),
+            onFilter: (value, record) => record.name === value,
+            filterSearch: true,
         },
         {
             title: 'Email',
             dataIndex: 'email',
             key: 'email',
-            ...getColumnSearchProps('email', 'Email'),
+            filters: Array.from(new Set(users.map(u => u.email))).map(e => ({ text: e, value: e })),
+            onFilter: (value, record) => record.email === value,
+            filterSearch: true,
         },
         {
             title: 'Role',
             dataIndex: 'role',
             key: 'role',
-            ...getColumnSearchProps('role', 'Role'),
+            filters: [
+                { text: 'Admin', value: 'Admin' },
+                { text: 'Co-Admin', value: 'Co-Admin' },
+                { text: 'User', value: 'User' },
+            ],
+            onFilter: (value, record) => record.role === value,
             render: (role) => {
                 // Color-code roles for better visibility
                 let color = role === 'Admin' ? 'red' : role === 'Co-Admin' ? 'blue' : 'green';
@@ -84,6 +91,11 @@ const Users = () => {
             title: 'Status',
             dataIndex: 'status',
             key: 'status',
+            filters: [
+                { text: 'Active', value: 'Active' },
+                { text: 'Inactive', value: 'Inactive' },
+            ],
+            onFilter: (value, record) => record.status === value,
             render: (status) => (
                 <Tag color={status === 'Active' ? 'success' : 'default'}>
                     {status.toUpperCase()}

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Table, Tag, Button, Space, Typography, Tooltip, message, Popconfirm, Badge, Modal, Row, Col, Divider, Input, Form, Select, InputNumber } from 'antd';
-import { 
-    EyeOutlined, 
-    CheckOutlined, 
-    DeleteOutlined, 
+import {
+    EyeOutlined,
+    CheckOutlined,
+    DeleteOutlined,
     BellOutlined,
     PlusOutlined
 } from '@ant-design/icons';
@@ -46,19 +46,19 @@ const Help = () => {
     // Handlers for the Action buttons
     const handleView = (record) => {
         let updatedRecord = { ...record };
-        
+
         if (!updatedRecord.logs) {
             updatedRecord.logs = [];
         }
-        
+
         updatedRecord.logs.push({
             action: 'Viewed Request',
             time: new Date().toLocaleString(),
             adminName: 'System Admin'
         });
-        
+
         updateRequest(updatedRecord);
-        
+
         setSelectedRequest(updatedRecord);
         setFeedbackText(updatedRecord.feedback || '');
         setIsModalOpen(true);
@@ -81,10 +81,10 @@ const Help = () => {
             message.error('Please enter feedback.');
             return;
         }
-        
+
         const isFirstSubmit = !selectedRequest.feedback;
         const isFeedbackChanged = selectedRequest.feedback !== feedbackText;
-        
+
         const updatedRecord = {
             ...selectedRequest,
             feedback: feedbackText,
@@ -102,7 +102,7 @@ const Help = () => {
                 adminName: 'System Admin'
             });
         }
-        
+
         updateRequest(updatedRecord);
         setSelectedRequest(updatedRecord);
         message.success(isFirstSubmit ? 'Feedback submitted successfully!' : 'Feedback updated successfully!');
@@ -162,6 +162,12 @@ const Help = () => {
             title: 'Urgency Level',
             dataIndex: 'urgencyLevel',
             key: 'urgencyLevel',
+            filters: [
+                { text: 'High', value: 'high' },
+                { text: 'Medium', value: 'medium' },
+                { text: 'Low', value: 'low' },
+            ],
+            onFilter: (value, record) => record.urgencyLevel === value,
             render: (urgency) => {
                 let color = 'green';
                 if (urgency === 'high') color = 'red';
@@ -193,6 +199,16 @@ const Help = () => {
             title: 'Status',
             dataIndex: 'status',
             key: 'status',
+            filters: [
+                { text: 'Pending', value: 'pending' },
+                { text: 'Processing', value: 'processing' },
+                { text: 'Completed', value: 'success' },
+                { text: 'Delay', value: 'delay' },
+            ],
+            onFilter: (value, record) => {
+                if (value === 'success') return record.status === 'success' || record.status === 'completed';
+                return record.status === value;
+            },
             render: (status) => {
                 let color = 'blue';
                 if (status === 'pending') color = 'orange';
@@ -207,34 +223,34 @@ const Help = () => {
             render: (_, record) => (
                 <Space size="middle">
                     <Tooltip title="View Details">
-                        <Button 
-                            type="default" 
+                        <Button
+                            type="default"
                             style={{ color: '#1890ff', borderColor: '#91d5ff', background: '#e6f7ff' }}
-                            icon={<EyeOutlined />} 
-                            size="small" 
+                            icon={<EyeOutlined />}
+                            size="small"
                             onClick={() => handleView(record)}
                         />
                     </Tooltip>
-                    
+
                     {record.status !== 'success' && (
                         <Tooltip title="Mark as Completed">
-                            <Button 
-                                type="default" 
+                            <Button
+                                type="default"
                                 style={{ color: '#52c41a', borderColor: '#b7eb8f', background: '#f6ffed' }}
-                                icon={<CheckOutlined />} 
-                                size="small" 
+                                icon={<CheckOutlined />}
+                                size="small"
                                 onClick={() => handleComplete(record)}
                             />
                         </Tooltip>
                     )}
 
                     <Tooltip title="Delete Request">
-                        <Button 
-                            type="default" 
-                            danger 
+                        <Button
+                            type="default"
+                            danger
                             style={{ color: '#f5222d', borderColor: '#ffa39e', background: '#fff1f0' }}
-                            icon={<DeleteOutlined />} 
-                            size="small" 
+                            icon={<DeleteOutlined />}
+                            size="small"
                             onClick={() => showDeleteConfirm(record)}
                         />
                     </Tooltip>
@@ -248,32 +264,32 @@ const Help = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <Title level={3} style={{ margin: 0 }}>Help Requests</Title>
                 <Space size="middle">
-                    <Input.Search 
-                        placeholder="Search by ID, Name, Location or Status" 
-                        allowClear 
+                    <Input.Search
+                        placeholder="Search by ID, Name, Location or Status"
+                        allowClear
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        style={{ width: 350 }} 
+                        style={{ width: 350 }}
                     />
                     <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsCreateModalOpen(true)}>
                         New Request
                     </Button>
                 </Space>
             </div>
-            <Table 
-                columns={columns} 
+            <Table
+                columns={columns}
                 dataSource={[...requests].filter(req => {
                     const q = searchQuery.toLowerCase();
-                    return !q || 
-                           req.name?.toLowerCase().includes(q) || 
-                           req.id?.toString().toLowerCase().includes(q) || 
-                           req.location?.toLowerCase().includes(q) || 
-                           req.status?.toLowerCase().includes(q) ||
-                           req.urgencyLevel?.toLowerCase().includes(q);
+                    return !q ||
+                        req.name?.toLowerCase().includes(q) ||
+                        req.id?.toString().toLowerCase().includes(q) ||
+                        req.location?.toLowerCase().includes(q) ||
+                        req.status?.toLowerCase().includes(q) ||
+                        req.urgencyLevel?.toLowerCase().includes(q);
                 }).sort((a, b) => {
                     if (a.status === 'success' && b.status !== 'success') return 1;
                     if (a.status !== 'success' && b.status === 'success') return -1;
                     return 0;
-                })} 
+                })}
                 rowKey="id"
                 pagination={{ pageSize: 10 }}
                 scroll={{ x: 'max-content' }}
@@ -291,8 +307,8 @@ const Help = () => {
                 maskClosable={!!selectedRequest?.feedback}
                 closable={!!selectedRequest?.feedback}
                 footer={[
-                    <Button 
-                        key="close" 
+                    <Button
+                        key="close"
                         onClick={handleModalClose}
                         disabled={selectedRequest && !selectedRequest.feedback}
                     >
@@ -351,21 +367,21 @@ const Help = () => {
                     <div style={{ marginTop: '24px' }}>
                         <Divider style={{ margin: '16px 0' }} />
                         <Typography.Title level={5} style={{ margin: '0 0 16px 0', color: '#1890ff' }}>Office Use</Typography.Title>
-                        
+
                         <div>
                             <Typography.Text type="secondary" style={{ display: 'block', fontSize: '13px', marginBottom: '8px', fontWeight: 500 }}>
-                                Admin Feedback / Progress Notes {!selectedRequest.feedback && <span style={{color: 'red'}}>*</span>}
+                                Admin Feedback / Progress Notes {!selectedRequest.feedback && <span style={{ color: 'red' }}>*</span>}
                             </Typography.Text>
-                            <Input.TextArea 
-                                rows={4} 
+                            <Input.TextArea
+                                rows={4}
                                 value={feedbackText}
                                 onChange={(e) => setFeedbackText(e.target.value)}
-                                placeholder="Enter internal feedback, status updates, or actions taken here..." 
+                                placeholder="Enter internal feedback, status updates, or actions taken here..."
                                 style={{ borderRadius: '6px' }}
                             />
                             <div style={{ marginTop: '12px', textAlign: 'right' }}>
-                                <Button 
-                                    type="primary" 
+                                <Button
+                                    type="primary"
                                     onClick={handleFeedbackSubmit}
                                     disabled={!selectedRequest.feedback && !feedbackText.trim()}
                                 >
@@ -377,18 +393,18 @@ const Help = () => {
                         {selectedRequest.logs && (
                             <div style={{ marginTop: '24px' }}>
                                 <Typography.Text type="secondary" style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', marginBottom: '8px' }}>Action Log</Typography.Text>
-                                <div style={{ 
-                                    maxHeight: '120px', 
-                                    overflowY: 'auto', 
-                                    padding: '8px 12px', 
-                                    background: '#fafafa', 
-                                    border: '1px solid #f0f0f0', 
-                                    borderRadius: '6px' 
+                                <div style={{
+                                    maxHeight: '120px',
+                                    overflowY: 'auto',
+                                    padding: '8px 12px',
+                                    background: '#fafafa',
+                                    border: '1px solid #f0f0f0',
+                                    borderRadius: '6px'
                                 }}>
                                     {[...selectedRequest.logs].reverse().map((log, index) => (
                                         <div key={index} style={{ fontSize: '12px', marginBottom: '6px', borderBottom: index < selectedRequest.logs.length - 1 ? '1px dashed #e8e8e8' : 'none', paddingBottom: '4px' }}>
-                                            <span style={{ color: '#888', marginRight: '8px' }}>[{log.time}]</span> 
-                                            <span style={{ fontWeight: 500, marginRight: '4px' }}>{log.adminName}:</span> 
+                                            <span style={{ color: '#888', marginRight: '8px' }}>[{log.time}]</span>
+                                            <span style={{ fontWeight: 500, marginRight: '4px' }}>{log.adminName}:</span>
                                             <span>{log.action}</span>
                                         </div>
                                     ))}

@@ -118,6 +118,13 @@ const Home = () => {
             title: 'Type',
             dataIndex: 'emergencyType',
             key: 'emergencyType',
+            filters: [
+                { text: 'Medical', value: 'medical' },
+                { text: 'Fire', value: 'fire' },
+                { text: 'Flood', value: 'flood' },
+                { text: 'Rescue', value: 'rescue' },
+            ],
+            onFilter: (value, record) => record.emergencyType?.includes(value),
             render: (types) => (
                 // Display emergency types as blue tags
                 <>{types.map(type => <Tag color="cyan" key={type}>{type.toUpperCase()}</Tag>)}</>
@@ -127,6 +134,12 @@ const Home = () => {
             title: 'Urgency',
             dataIndex: 'urgencyLevel',
             key: 'urgencyLevel',
+            filters: [
+                { text: 'High', value: 'high' },
+                { text: 'Medium', value: 'medium' },
+                { text: 'Low', value: 'low' },
+            ],
+            onFilter: (value, record) => record.urgencyLevel === value,
             render: (urgency) => {
                 // Color-code urgency levels
                 let color = urgency === 'high' ? 'red' : urgency === 'medium' ? 'orange' : 'green';
@@ -139,6 +152,13 @@ const Home = () => {
             title: 'Status',
             dataIndex: 'status',
             key: 'status',
+            filters: [
+                { text: 'Pending', value: 'pending' },
+                { text: 'Processing', value: 'processing' },
+                { text: 'Success', value: 'success' },
+                { text: 'Delay', value: 'delay' },
+            ],
+            onFilter: (value, record) => record.status === value,
             render: (status, record) => (
                 // Dropdown to change the status of a request
                 <Select
@@ -154,6 +174,15 @@ const Home = () => {
             ),
         }
     ];
+
+    // Sort requests so that 'success' status items are pushed to the bottom of the table
+    const sortedRequests = useMemo(() => {
+        return [...requests].sort((a, b) => {
+            if (a.status === 'success' && b.status !== 'success') return 1;
+            if (a.status !== 'success' && b.status === 'success') return -1;
+            return 0; // Maintain original order for other statuses
+        });
+    }, [requests]);
 
     return (
         <div>
@@ -266,7 +295,7 @@ const Home = () => {
             {/* --- Recent Requests Table --- */}
             <Card title="Recent Requests" bordered={false} style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
                 <Table
-                    dataSource={requests}
+                    dataSource={sortedRequests}
                     columns={columns}
                     rowKey="id"
                     pagination={{ pageSize: 5 }}
