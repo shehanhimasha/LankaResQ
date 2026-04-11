@@ -1,0 +1,62 @@
+import React from 'react';
+import { Typography, Row, Col } from 'antd';
+import useDashboard from '../../hooks/useDashboard';
+import StatsCards from '../../components/dashboard/StatsCards';
+import RequestsBarChart from '../../components/dashboard/RequestsBarChart';
+import StatusPieChart from '../../components/dashboard/StatusPieChart';
+import RecentRequestsTable from '../../components/dashboard/RecentRequestsTable';
+
+const { Title } = Typography;
+
+const Home = () => {
+    const {
+        totalRequests,
+        pendingRequests,
+        processingRequests,
+        completedRequests,
+        statusData,
+        selectedMonth,
+        setSelectedMonth,
+        filteredChartData,
+        monthOptions,
+        sortedRequests,
+        updateRequestStatus
+    } = useDashboard();
+
+    return (
+        <div>
+            <Title level={2} style={{ marginBottom: 24, fontSize: 24 }}>Dashboard Overview</Title>
+
+            <StatsCards 
+                totalRequests={totalRequests} 
+                pendingRequests={pendingRequests} 
+                processingRequests={processingRequests} 
+                completedRequests={completedRequests} 
+            />
+
+            <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
+                <Col xs={24} lg={15}>
+                    <RequestsBarChart 
+                        filteredChartData={filteredChartData}
+                        monthOptions={monthOptions}
+                        selectedMonth={selectedMonth}
+                        setSelectedMonth={setSelectedMonth}
+                    />
+                </Col>
+                <Col xs={24} lg={9}>
+                    <StatusPieChart 
+                        statusData={statusData}
+                        totalRequests={totalRequests}
+                    />
+                </Col>
+            </Row>
+
+            <RecentRequestsTable 
+                sortedRequests={sortedRequests}
+                updateRequestStatus={updateRequestStatus}
+            />
+        </div>
+    );
+};
+
+export default Home;
