@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card } from 'antd';
 import { PlusOutlined, DeleteOutlined, UserAddOutlined, SearchOutlined, EditOutlined } from '@ant-design/icons';
 import { useUser } from '../context/UserContext';
-import { useAuth } from '../context/AuthContext';
 import { useTableSearch } from '../utils/tableUtils';
 
 const { Title } = Typography;
@@ -11,7 +10,6 @@ const { Option } = Select;
 const Users = () => {
     // Access user management functions from UserContext
     const { users, addUser, updateUser, deleteUser } = useUser();
-    const { user: currentUser } = useAuth();
     const getColumnSearchProps = useTableSearch();
 
     // State to control the visibility of the "Add User" modal
@@ -54,16 +52,16 @@ const Users = () => {
     // Filter users list based on search text and RBAC
     const filteredUsers = users.filter(u => {
         const matchesSearch = u.name.toLowerCase().includes(searchText.toLowerCase()) ||
-                              u.email.toLowerCase().includes(searchText.toLowerCase());
-        
+            u.email.toLowerCase().includes(searchText.toLowerCase());
+
         const isCurrentUserCoAdmin = currentUser?.role === 'Co-Admin' || currentUser?.role === 'co-admin';
         const isTargetUserAdmin = u.role === 'Admin' || u.role === 'admin';
-        
+
         // Co-Admins cannot see Admins
         if (isCurrentUserCoAdmin && isTargetUserAdmin) {
             return false;
         }
-        
+
         return matchesSearch;
     });
 
@@ -93,13 +91,17 @@ const Users = () => {
             title: 'Name',
             dataIndex: 'name',
             key: 'name',
-            ...getColumnSearchProps('name', 'Name'),
+            filters: Array.from(new Set(users.map(u => u.name))).map(n => ({ text: n, value: n })),
+            onFilter: (value, record) => record.name === value,
+            filterSearch: true,
         },
         {
             title: 'Email',
             dataIndex: 'email',
             key: 'email',
-            ...getColumnSearchProps('email', 'Email'),
+            filters: Array.from(new Set(users.map(u => u.email))).map(e => ({ text: e, value: e })),
+            onFilter: (value, record) => record.email === value,
+            filterSearch: true,
         },
         {
             title: 'Contact No',
@@ -110,7 +112,12 @@ const Users = () => {
             title: 'Role',
             dataIndex: 'role',
             key: 'role',
-            ...getColumnSearchProps('role', 'Role'),
+            filters: [
+                { text: 'Admin', value: 'Admin' },
+                { text: 'Co-Admin', value: 'Co-Admin' },
+                { text: 'User', value: 'User' },
+            ],
+            onFilter: (value, record) => record.role === value,
             render: (role) => {
                 // Color-code roles for better visibility
                 let color = role === 'Admin' ? 'red' : role === 'Co-Admin' ? 'blue' : 'green';
@@ -121,6 +128,11 @@ const Users = () => {
             title: 'Status',
             dataIndex: 'status',
             key: 'status',
+            filters: [
+                { text: 'Active', value: 'Active' },
+                { text: 'Inactive', value: 'Inactive' },
+            ],
+            onFilter: (value, record) => record.status === value,
             render: (status) => (
                 <Tag color={status === 'Active' ? 'success' : 'default'}>
                     {status.toUpperCase()}
@@ -139,7 +151,7 @@ const Users = () => {
                 const isCurrentUserCoAdmin = currentUser?.role === 'Co-Admin' || currentUser?.role === 'co-admin';
                 const isTargetAdmin = record.role === 'Admin' || record.role === 'admin';
                 const isTargetCoAdmin = record.role === 'Co-Admin' || record.role === 'co-admin';
-                
+
                 return (
                     <Space size="middle">
                         <Button
