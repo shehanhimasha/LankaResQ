@@ -11,15 +11,12 @@ const Login = () => {
     const location = useLocation();
     const [loading, setLoading] = useState(false);
 
-    // Get the redirect path from location state, or default to home
-    const from = location.state?.from?.pathname || '/';
-
     const onFinish = async (values) => {
         setLoading(true);
         try {
             await login(values.email, values.password);
             message.success('Login successful');
-            navigate(from, { replace: true });
+            navigate('/', { replace: true });
         } catch (error) {
             console.error("Login failed:", error);
             message.error('Login failed. Please check your credentials.');

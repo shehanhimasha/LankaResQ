@@ -6,19 +6,20 @@ import { useAuth } from '../context/AuthContext';
 const { Title } = Typography;
 
 const Settings = () => {
-    const { user, updateProfile } = useAuth();
+    const { user, updateProfile, usersDb } = useAuth();
     const [form] = Form.useForm();
 
     useEffect(() => {
-        if (user) {
+        if (user && usersDb) {
+            const masterProfile = usersDb.find(u => u.email === user.email);
             form.setFieldsValue({
                 name: user.name,
                 email: user.email,
                 contact: user.contact || '',
-                password: user.password || '' // Showing mock password mainly for demo of field
+                password: masterProfile?.password || ''
             });
         }
-    }, [user, form]);
+    }, [user, usersDb, form]);
 
     const onFinish = async (values) => {
         try {

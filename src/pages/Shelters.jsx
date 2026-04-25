@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card, InputNumber } from 'antd';
-import { PlusOutlined, DeleteOutlined, HomeOutlined, SearchOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, HomeOutlined, SearchOutlined, EditOutlined } from '@ant-design/icons';
 import { useShelter } from '../context/ShelterContext';
+import { useAuth } from '../context/AuthContext';
 import { useTableSearch } from '../utils/tableUtils';
 
 const { Title } = Typography;
@@ -9,14 +10,18 @@ const { Option } = Select;
 
 const Shelters = () => {
     // Get shelter data and management functions from ShelterContext
-    const { shelters, addShelter, updateShelterStatus, deleteShelter } = useShelter();
+    const { shelters, addShelter, updateShelterStatus, deleteShelter, updateShelter } = useShelter();
+    const { user: currentUser } = useAuth();
     const getColumnSearchProps = useTableSearch();
 
     // UI state for Modal visibility and Search functionality
     const [isModalVisible, setIsModalVisible] = useState(false);
+    const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+    const [editingShelter, setEditingShelter] = useState(null);
     const [searchText, setSearchText] = useState('');
 
     const [form] = Form.useForm();
+    const [editForm] = Form.useForm();
 
     // Handler to save a new shelter
     const handleAddShelter = (values) => {
@@ -24,6 +29,19 @@ const Shelters = () => {
         message.success('Shelter added successfully');
         setIsModalVisible(false);
         form.resetFields();
+    };
+
+    const handleEditClick = (record) => {
+        setEditingShelter(record);
+        editForm.setFieldsValue(record);
+        setIsEditModalVisible(true);
+    };
+
+    const handleEditSubmit = (values) => {
+        updateShelter(editingShelter.id, values);
+        message.success('Shelter updated successfully');
+        setIsEditModalVisible(false);
+        setEditingShelter(null);
     };
 
     // Filter shelters by Name or Location based on search text
@@ -80,34 +98,49 @@ const Shelters = () => {
             title: 'Status',
             dataIndex: 'status',
             key: 'status',
-            render: (status, record) => (
-                // Dropdown to update shelter availability status
-                <Select
-                    defaultValue={status}
-                    style={{ width: 140 }}
-                    onChange={(value) => updateShelterStatus(record.id, value)}
-                >
-                    <Option value="Available"><Tag color="success">AVAILABLE</Tag></Option>
-                    <Option value="Full"><Tag color="warning">FULL</Tag></Option>
-                    <Option value="Not Available"><Tag color="error">NOT AVAILABLE</Tag></Option>
-                </Select>
-            ),
+            render: (status, record) => {
+                const isUser = currentUser?.role === 'User' || currentUser?.role === 'user';
+                return (
+                    <Select
+                        defaultValue={status}
+                        style={{ width: 140 }}
+                        onChange={(value) => updateShelterStatus(record.id, value)}
+                        disabled={isUser}
+                    >
+                        <Option value="Available"><Tag color="success">AVAILABLE</Tag></Option>
+                        <Option value="Full"><Tag color="warning">FULL</Tag></Option>
+                        <Option value="Not Available"><Tag color="error">NOT AVAILABLE</Tag></Option>
+                    </Select>
+                );
+            },
         },
-        {
+    ];
+
+    if (currentUser?.role !== 'User' && currentUser?.role !== 'user') {
+        columns.push({
             title: 'Action',
             key: 'action',
             render: (_, record) => (
-                <Button
-                    type="text"
-                    danger
-                    icon={<DeleteOutlined />}
-                    onClick={() => handleDelete(record.id)}
-                >
-                    Delete
-                </Button>
+                <Space size="middle">
+                    <Button
+                        type="text"
+                        icon={<EditOutlined style={{ color: '#1890ff' }} />}
+                        onClick={() => handleEditClick(record)}
+                    >
+                        Edit
+                    </Button>
+                    <Button
+                        type="text"
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={() => handleDelete(record.id)}
+                    >
+                        Delete
+                    </Button>
+                </Space>
             ),
-        },
-    ];
+        });
+    }
 
     return (
         <div>
@@ -125,9 +158,11 @@ const Shelters = () => {
                     />
                 </div>
                 {/* Add Shelter Button */}
-                <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalVisible(true)} size="large">
-                    Add New Shelter
-                </Button>
+                {currentUser?.role !== 'User' && currentUser?.role !== 'user' && (
+                    <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalVisible(true)} size="large">
+                        Add New Shelter
+                    </Button>
+                )}
             </div>
 
             {/* --- Shelters Table --- */}
@@ -198,6 +233,42 @@ const Shelters = () => {
                             <Button type="primary" htmlType="submit">
                                 Add Shelter
                             </Button>
+                        </Space>
+                    </Form.Item>
+                </Form>
+            </Modal>
+
+            {/* --- Edit Shelter Modal --- */}
+            <Modal
+                title="Update Shelter Details"
+                open={isEditModalVisible}
+                onCancel={() => {
+                    setIsEditModalVisible(false);
+                    setEditingShelter(null);
+                }}
+                footer={null}
+            >
+                <Form
+                    form={editForm}
+                    layout="vertical"
+                    onFinish={handleEditSubmit}
+                >
+                    <Form.Item name="name" label="Shelter Name" rules={[{ required: true, message: 'Please enter shelter name' }]}>
+                        <Input prefix={<HomeOutlined />} />
+                    </Form.Item>
+                    <Form.Item name="location" label="Location" rules={[{ required: true, message: 'Please enter location' }]}>
+                        <Input />
+                    </Form.Item>
+                    <Form.Item name="contactNumber" label="Contact Number" rules={[{ required: true, message: 'Please enter contact number' }]}>
+                        <Input />
+                    </Form.Item>
+                    <Form.Item name="maxCapacity" label="Maximum Capacity" rules={[{ required: true, message: 'Please enter max capacity' }]}>
+                        <InputNumber min={1} style={{ width: '100%' }} />
+                    </Form.Item>
+                    <Form.Item>
+                        <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+                            <Button onClick={() => setIsEditModalVisible(false)}>Cancel</Button>
+                            <Button type="primary" htmlType="submit">Save Changes</Button>
                         </Space>
                     </Form.Item>
                 </Form>

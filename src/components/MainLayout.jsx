@@ -32,7 +32,7 @@ const MainLayout = () => {
     } = theme.useToken();
     const navigate = useNavigate();
     const location = useLocation();
-    const { logout } = useAuth();
+    const { logout, user } = useAuth();
     const { isDarkMode, toggleTheme } = useTheme();
     const { unreadCount } = useNotification();
 
@@ -67,7 +67,7 @@ const MainLayout = () => {
             icon: <WarningOutlined style={{ color: '#ff4d4f' }} />,
             label: 'Danger Zone',
         },
-        {
+        (user?.role === 'Admin' || user?.role === 'admin' || user?.role === 'Co-Admin' || user?.role === 'co-admin') && {
             key: '/users',
             icon: <UserOutlined />,
             label: 'Users',
@@ -77,7 +77,7 @@ const MainLayout = () => {
             icon: <SettingOutlined />,
             label: 'Settings',
         },
-    ];
+    ].filter(Boolean);
 
     const handleMenuClick = ({ key }) => {
         navigate(key);
@@ -148,7 +148,7 @@ const MainLayout = () => {
                                             </Space>
                                         ),
                                         icon: <BellOutlined />,
-                                        onClick: () => navigate('/notifications'),
+                                        onClick: () => navigate('/alerts'),
                                     },
                                     {
                                         key: '2',
@@ -161,7 +161,7 @@ const MainLayout = () => {
                             placement="bottomRight"
                         >
                             <Space style={{ cursor: 'pointer' }}>
-                                <Badge count={unreadCount} dot>
+                                <Badge count={unreadCount > 0 ? unreadCount : 0}>
                                     <Avatar shape="square" icon={<UserOutlined />} style={{ backgroundColor: '#87d068' }} />
                                 </Badge>
                             </Space>
