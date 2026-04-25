@@ -3,7 +3,6 @@ import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, mess
 import { PlusOutlined, DeleteOutlined, HomeOutlined, SearchOutlined, EditOutlined } from '@ant-design/icons';
 import { useShelter } from '../context/ShelterContext';
 import { useAuth } from '../context/AuthContext';
-import { useTableSearch } from '../utils/tableUtils';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -12,7 +11,6 @@ const Shelters = () => {
     // Get shelter data and management functions from ShelterContext
     const { shelters, addShelter, updateShelterStatus, deleteShelter, updateShelter } = useShelter();
     const { user: currentUser } = useAuth();
-    const getColumnSearchProps = useTableSearch();
 
     // UI state for Modal visibility and Search functionality
     const [isModalVisible, setIsModalVisible] = useState(false);
@@ -76,13 +74,17 @@ const Shelters = () => {
             title: 'Name',
             dataIndex: 'name',
             key: 'name',
-            ...getColumnSearchProps('name', 'Name'),
+            filters: Array.from(new Set(shelters.map(s => s.name))).map(n => ({ text: n, value: n })),
+            onFilter: (value, record) => record.name === value,
+            filterSearch: true,
         },
         {
             title: 'Location',
             dataIndex: 'location',
             key: 'location',
-            ...getColumnSearchProps('location', 'Location'),
+            filters: Array.from(new Set(shelters.map(s => s.location))).map(l => ({ text: l, value: l })),
+            onFilter: (value, record) => record.location === value,
+            filterSearch: true,
         },
         {
             title: 'Contact Number',
