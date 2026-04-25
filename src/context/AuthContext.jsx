@@ -4,70 +4,128 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-    // State to hold current user information
     const [user, setUser] = useState(null);
-    // State to manage loading status during initial check
     const [loading, setLoading] = useState(true);
+    const [usersDb, setUsersDb] = useState([]);
 
-    // Effect to check if a user is already logged in
     useEffect(() => {
+        const storedUsers = localStorage.getItem('usersDb');
+        if (storedUsers) {
+            const parsed = JSON.parse(storedUsers).map(u => ({
+                ...u,
+                status: u.status || 'Active',
+                role: u.role || 'User',
+                joinedDate: u.joinedDate || new Date().toISOString().split('T')[0]
+            }));
+            setUsersDb(parsed);
+            localStorage.setItem('usersDb', JSON.stringify(parsed));
+        } else {
+            const defaultUsers = [
+                {
+                    id: 1,
+                    name: 'Admin User',
+                    email: 'admin@gmail.com',
+                    role: 'Admin',
+                    password: '12345',
+                    status: 'Active',
+                    contact: '0771234567',
+                    joinedDate: '2025-01-01',
+                },
+                {
+                    id: 2,
+                    name: 'Sarah Connor',
+                    email: 'sarah@example.com',
+                    role: 'Co-Admin',
+                    password: 'password123',
+                    status: 'Active',
+                    joinedDate: '2025-02-15',
+                }
+            ];
+            setUsersDb(defaultUsers);
+            localStorage.setItem('usersDb', JSON.stringify(defaultUsers));
+        }
+
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
             setUser(JSON.parse(storedUser));
         }
-        setLoading(false); // Finished checking
+        setLoading(false);
     }, []);
 
-    // Function to handle login
     const login = async (email, password) => {
-        // Return a Promise to simulate an API call delay
         return new Promise((resolve, reject) => {
             setTimeout(() => {
-                if (email === 'admin@gmail.com') {
-                    const userData = {
-                        email,
-                        name: 'Admin User',
-                        role: 'admin',
-                        contact: '0771234567',
-                        password: password
-                    };
+                const foundUser = usersDb.find(u => u.email === email && u.password === password);
+                if (foundUser) {
+                    const userData = { ...foundUser };
+                    delete userData.password;
 
-                    // Update state and persist to localStorage
                     setUser(userData);
                     localStorage.setItem('user', JSON.stringify(userData));
-
                     resolve(userData);
                 } else {
                     reject(new Error('Invalid email or password'));
                 }
-            }, 500); // Simulate network delay
-        });
-    };
-
-    // Function to update user profile details
-    const updateProfile = async (updatedData) => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                // Merge existing user data with updates
-                const newUser = { ...user, ...updatedData };
-
-                setUser(newUser);
-                localStorage.setItem('user', JSON.stringify(newUser));
-
-                resolve(newUser);
             }, 500);
         });
     };
 
-    // Function to handle logout
+    const updateProfile = async (updatedData) => {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const updatedUsersDb = usersDb.map(u => {
+                    if (u.email === user.email) {
+                        return { ...u, ...updatedData };
+                    }
+                    return u;
+                });
+                
+                setUsersDb(updatedUsersDb);
+                localStorage.setItem('usersDb', JSON.stringify(updatedUsersDb));
+
+                const sessionData = { ...user, ...updatedData };
+                delete sessionData.password;
+                
+                setUser(sessionData);
+                localStorage.setItem('user', JSON.stringify(sessionData));
+
+                resolve(sessionData);
+            }, 500);
+        });
+    };
+
+    const addUser = (newUserData) => {
+        const newUser = { 
+            ...newUserData, 
+            id: usersDb.length ? Math.max(...usersDb.map(u => u.id)) + 1 : 1,
+            status: 'Active',
+            joinedDate: new Date().toISOString().split('T')[0]
+        };
+        const updatedUsers = [...usersDb, newUser];
+        setUsersDb(updatedUsers);
+        localStorage.setItem('usersDb', JSON.stringify(updatedUsers));
+        return newUser;
+    };
+
+    const updateUserDb = (id, updatedData) => {
+        const updatedUsers = usersDb.map(u => u.id === id ? { ...u, ...updatedData } : u);
+        setUsersDb(updatedUsers);
+        localStorage.setItem('usersDb', JSON.stringify(updatedUsers));
+    };
+
+    const deleteUserDb = (id) => {
+        const updatedUsers = usersDb.filter(u => u.id !== id);
+        setUsersDb(updatedUsers);
+        localStorage.setItem('usersDb', JSON.stringify(updatedUsers));
+    };
+
     const logout = () => {
         setUser(null);
         localStorage.removeItem('user');
     };
 
     return (
-        // Provide the auth state and functions to the rest of the app
-        <AuthContext.Provider value={{ user, login, logout, updateProfile, loading }}>
+        <AuthContext.Provider value={{ user, login, logout, updateProfile, usersDb, addUser, updateUserDb, deleteUserDb, loading }}>
             {!loading && children}
         </AuthContext.Provider>
     );

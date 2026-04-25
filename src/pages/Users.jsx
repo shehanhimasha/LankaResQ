@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card } from 'antd';
-import { PlusOutlined, DeleteOutlined, UserAddOutlined, SearchOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, UserAddOutlined, SearchOutlined, EditOutlined } from '@ant-design/icons';
 import { useUser } from '../context/UserContext';
+import { useAuth } from '../context/AuthContext';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -9,9 +10,13 @@ const { Option } = Select;
 const Users = () => {
     // Access user management functions from UserContext
     const { users, addUser, updateUser, deleteUser } = useUser();
+    const { user: currentUser } = useAuth();
 
     // State to control the visibility of the "Add User" modal
     const [isModalVisible, setIsModalVisible] = useState(false);
+    const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+    const [editingUser, setEditingUser] = useState(null);
+    const [editForm] = Form.useForm();
 
     // State for the search bar text
     const [searchText, setSearchText] = useState('');
@@ -27,11 +32,38 @@ const Users = () => {
         form.resetFields(); // Clear the form
     };
 
-    // Filter users list based on search text (matches Name or Email)
-    const filteredUsers = users.filter(user =>
-        user.name.toLowerCase().includes(searchText.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchText.toLowerCase())
-    );
+    const handleEditClick = (record) => {
+        setEditingUser(record);
+        editForm.setFieldsValue({
+            name: record.name,
+            email: record.email,
+            contact: record.contact || '',
+        });
+        setIsEditModalVisible(true);
+    };
+
+    const handleEditSubmit = (values) => {
+        updateUser(editingUser.id, values);
+        message.success('User profile updated successfully');
+        setIsEditModalVisible(false);
+        setEditingUser(null);
+    };
+
+    // Filter users list based on search text and RBAC
+    const filteredUsers = users.filter(u => {
+        const matchesSearch = u.name.toLowerCase().includes(searchText.toLowerCase()) ||
+            u.email.toLowerCase().includes(searchText.toLowerCase());
+
+        const isCurrentUserCoAdmin = currentUser?.role === 'Co-Admin' || currentUser?.role === 'co-admin';
+        const isTargetUserAdmin = u.role === 'Admin' || u.role === 'admin';
+
+        // Co-Admins cannot see Admins
+        if (isCurrentUserCoAdmin && isTargetUserAdmin) {
+            return false;
+        }
+
+        return matchesSearch;
+    });
 
     // Handler for deleting a user with a confirmation dialog
     const handleDelete = (id) => {
@@ -72,6 +104,11 @@ const Users = () => {
             filterSearch: true,
         },
         {
+            title: 'Contact No',
+            dataIndex: 'contact',
+            key: 'contact',
+        },
+        {
             title: 'Role',
             dataIndex: 'role',
             key: 'role',
@@ -110,19 +147,33 @@ const Users = () => {
         {
             title: 'Action',
             key: 'action',
-            render: (_, record) => (
-                <Space size="middle">
-                    <Button
-                        type="text"
-                        danger
-                        icon={<DeleteOutlined />}
-                        onClick={() => handleDelete(record.id)}
-                        disabled={record.role === 'Admin'} // Prevent deleting the main Admin
-                    >
-                        Delete
-                    </Button>
-                </Space>
-            ),
+            render: (_, record) => {
+                const isCurrentUserCoAdmin = currentUser?.role === 'Co-Admin' || currentUser?.role === 'co-admin';
+                const isTargetAdmin = record.role === 'Admin' || record.role === 'admin';
+                const isTargetCoAdmin = record.role === 'Co-Admin' || record.role === 'co-admin';
+
+                return (
+                    <Space size="middle">
+                        <Button
+                            type="text"
+                            icon={<EditOutlined style={{ color: '#1890ff' }} />}
+                            onClick={() => handleEditClick(record)}
+                            disabled={isTargetAdmin || (isCurrentUserCoAdmin && isTargetCoAdmin)}
+                        >
+                            Edit
+                        </Button>
+                        <Button
+                            type="text"
+                            danger
+                            icon={<DeleteOutlined />}
+                            onClick={() => handleDelete(record.id)}
+                            disabled={isTargetAdmin || (isCurrentUserCoAdmin && isTargetCoAdmin)}
+                        >
+                            Delete
+                        </Button>
+                    </Space>
+                );
+            },
         },
     ];
 
@@ -183,6 +234,14 @@ const Users = () => {
                     </Form.Item>
 
                     <Form.Item
+                        name="contact"
+                        label="Contact No"
+                        rules={[{ required: true, message: 'Please enter contact number' }]}
+                    >
+                        <Input placeholder="07XXXXXXXX" />
+                    </Form.Item>
+
+                    <Form.Item
                         name="role"
                         label="Role"
                         initialValue="User"
@@ -209,6 +268,52 @@ const Users = () => {
                             <Button type="primary" htmlType="submit">
                                 Add User
                             </Button>
+                        </Space>
+                    </Form.Item>
+                </Form>
+            </Modal>
+            {/* --- Edit User Modal --- */}
+            <Modal
+                title="Update User Details"
+                open={isEditModalVisible}
+                onCancel={() => {
+                    setIsEditModalVisible(false);
+                    setEditingUser(null);
+                }}
+                footer={null}
+            >
+                <Form
+                    form={editForm}
+                    layout="vertical"
+                    onFinish={handleEditSubmit}
+                >
+                    <Form.Item
+                        name="name"
+                        label="Full Name"
+                        rules={[{ required: true, message: 'Please enter the name' }]}
+                    >
+                        <Input />
+                    </Form.Item>
+                    <Form.Item
+                        name="email"
+                        label="Email"
+                        rules={[
+                            { required: true, message: 'Please enter the email' },
+                            { type: 'email', message: 'Please enter a valid email' }
+                        ]}
+                    >
+                        <Input />
+                    </Form.Item>
+                    <Form.Item
+                        name="contact"
+                        label="Contact No"
+                    >
+                        <Input />
+                    </Form.Item>
+                    <Form.Item>
+                        <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+                            <Button onClick={() => setIsEditModalVisible(false)}>Cancel</Button>
+                            <Button type="primary" htmlType="submit">Save Changes</Button>
                         </Space>
                     </Form.Item>
                 </Form>

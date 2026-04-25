@@ -44,12 +44,16 @@ export const ShelterProvider = ({ children }) => {
         setShelters(shelters.map(shelter => shelter.id === id ? { ...shelter, status: newStatus } : shelter));
     };
 
+    const updateShelter = (id, updatedData) => {
+        setShelters(shelters.map(shelter => shelter.id === id ? { ...shelter, ...updatedData } : shelter));
+    };
+
     const deleteShelter = (id) => {
         setShelters(shelters.filter(shelter => shelter.id !== id));
     };
 
     return (
-        <ShelterContext.Provider value={{ shelters, addShelter, updateShelterStatus, deleteShelter }}>
+        <ShelterContext.Provider value={{ shelters, addShelter, updateShelterStatus, updateShelter, deleteShelter }}>
             {children}
         </ShelterContext.Provider>
     );
