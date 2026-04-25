@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card } from 'antd';
 import { PlusOutlined, DeleteOutlined, UserAddOutlined, SearchOutlined, EditOutlined } from '@ant-design/icons';
 import { useUser } from '../context/UserContext';
-import { useTableSearch } from '../utils/tableUtils';
+import { useAuth } from '../context/AuthContext';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -10,7 +10,7 @@ const { Option } = Select;
 const Users = () => {
     // Access user management functions from UserContext
     const { users, addUser, updateUser, deleteUser } = useUser();
-    const getColumnSearchProps = useTableSearch();
+    const { user: currentUser } = useAuth();
 
     // State to control the visibility of the "Add User" modal
     const [isModalVisible, setIsModalVisible] = useState(false);
