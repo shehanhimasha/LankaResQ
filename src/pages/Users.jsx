@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card } from 'antd';
+import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card, Tooltip } from 'antd';
 import { PlusOutlined, DeleteOutlined, UserAddOutlined, SearchOutlined, EditOutlined } from '@ant-design/icons';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
@@ -154,23 +154,25 @@ const Users = () => {
 
                 return (
                     <Space size="middle">
-                        <Button
-                            type="text"
-                            icon={<EditOutlined style={{ color: '#1890ff' }} />}
-                            onClick={() => handleEditClick(record)}
-                            disabled={isTargetAdmin || (isCurrentUserCoAdmin && isTargetCoAdmin)}
-                        >
-                            Edit
-                        </Button>
-                        <Button
-                            type="text"
-                            danger
-                            icon={<DeleteOutlined />}
-                            onClick={() => handleDelete(record.id)}
-                            disabled={isTargetAdmin || (isCurrentUserCoAdmin && isTargetCoAdmin)}
-                        >
-                            Delete
-                        </Button>
+                        <Tooltip title="Edit">
+                            <Button
+                                type="default"
+                                style={{ color: '#1890ff', borderColor: '#91d5ff', background: '#e6f7ff' }}
+                                icon={<EditOutlined />}
+                                onClick={() => handleEditClick(record)}
+                                disabled={isTargetAdmin || (isCurrentUserCoAdmin && isTargetCoAdmin)}
+                            />
+                        </Tooltip>
+                        <Tooltip title="Delete">
+                            <Button
+                                type="default"
+                                danger
+                                style={{ color: '#f5222d', borderColor: '#ffa39e', background: '#fff1f0' }}
+                                icon={<DeleteOutlined />}
+                                onClick={() => handleDelete(record.id)}
+                                disabled={isTargetAdmin || (isCurrentUserCoAdmin && isTargetCoAdmin)}
+                            />
+                        </Tooltip>
                     </Space>
                 );
             },

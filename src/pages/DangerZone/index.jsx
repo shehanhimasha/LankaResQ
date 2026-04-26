@@ -13,7 +13,7 @@ const DangerZone = () => {
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                 <Title level={2} style={{ margin: 0 }}>
-                    <WarningOutlined style={{ color: '#ff4d4f', marginRight: 8 }} />
+                    <WarningOutlined style={{ marginRight: 8 }} />
                     Danger Zone Map
                 </Title>
             </div>

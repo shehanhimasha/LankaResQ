@@ -64,7 +64,7 @@ const MainLayout = () => {
         },
         {
             key: '/danger-zone',
-            icon: <WarningOutlined style={{ color: '#ff4d4f' }} />,
+            icon: <WarningOutlined />,
             label: 'Danger Zone',
         },
         (user?.role === 'Admin' || user?.role === 'admin' || user?.role === 'Co-Admin' || user?.role === 'co-admin') && {

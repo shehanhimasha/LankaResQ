@@ -54,10 +54,6 @@ const useHelp = () => {
     };
 
     const handleModalClose = () => {
-        if (selectedRequest && !selectedRequest.feedback) {
-            message.warning('Feedback is compulsory upon first view.');
-            return;
-        }
         setIsModalOpen(false);
         setTimeout(() => {
             setSelectedRequest(null);
