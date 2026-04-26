@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card, InputNumber } from 'antd';
+import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card, InputNumber, Tooltip } from 'antd';
 import { PlusOutlined, DeleteOutlined, HomeOutlined, SearchOutlined, EditOutlined } from '@ant-design/icons';
 import { useShelter } from '../context/ShelterContext';
 import { useAuth } from '../context/AuthContext';
@@ -92,6 +92,11 @@ const Shelters = () => {
             key: 'contactNumber',
         },
         {
+            title: 'Current Count',
+            dataIndex: 'currentCount',
+            key: 'currentCount',
+        },
+        {
             title: 'Max Capacity',
             dataIndex: 'maxCapacity',
             key: 'maxCapacity',
@@ -124,21 +129,23 @@ const Shelters = () => {
             key: 'action',
             render: (_, record) => (
                 <Space size="middle">
-                    <Button
-                        type="text"
-                        icon={<EditOutlined style={{ color: '#1890ff' }} />}
-                        onClick={() => handleEditClick(record)}
-                    >
-                        Edit
-                    </Button>
-                    <Button
-                        type="text"
-                        danger
-                        icon={<DeleteOutlined />}
-                        onClick={() => handleDelete(record.id)}
-                    >
-                        Delete
-                    </Button>
+                    <Tooltip title="Edit">
+                        <Button
+                            type="default"
+                            style={{ color: '#1890ff', borderColor: '#91d5ff', background: '#e6f7ff' }}
+                            icon={<EditOutlined />}
+                            onClick={() => handleEditClick(record)}
+                        />
+                    </Tooltip>
+                    <Tooltip title="Delete">
+                        <Button
+                            type="default"
+                            danger
+                            style={{ color: '#f5222d', borderColor: '#ffa39e', background: '#fff1f0' }}
+                            icon={<DeleteOutlined />}
+                            onClick={() => handleDelete(record.id)}
+                        />
+                    </Tooltip>
                 </Space>
             ),
         });
@@ -209,6 +216,14 @@ const Shelters = () => {
                     </Form.Item>
 
                     <Form.Item
+                        name="currentCount"
+                        label="Current Count"
+                        initialValue={0}
+                        rules={[{ required: true, message: 'Please enter current occupant count' }]}
+                    >
+                        <InputNumber min={0} style={{ width: '100%' }} placeholder="0" />
+                    </Form.Item>
+                    <Form.Item
                         name="maxCapacity"
                         label="Maximum Capacity"
                         rules={[{ required: true, message: 'Please enter max capacity' }]}
@@ -263,6 +278,9 @@ const Shelters = () => {
                     </Form.Item>
                     <Form.Item name="contactNumber" label="Contact Number" rules={[{ required: true, message: 'Please enter contact number' }]}>
                         <Input />
+                    </Form.Item>
+                    <Form.Item name="currentCount" label="Current Count" rules={[{ required: true, message: 'Please enter current occupant count' }]}>
+                        <InputNumber min={0} style={{ width: '100%' }} />
                     </Form.Item>
                     <Form.Item name="maxCapacity" label="Maximum Capacity" rules={[{ required: true, message: 'Please enter max capacity' }]}>
                         <InputNumber min={1} style={{ width: '100%' }} />

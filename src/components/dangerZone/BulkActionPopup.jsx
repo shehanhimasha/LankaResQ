@@ -26,7 +26,7 @@ const BulkActionPopup = ({ bulkPopupPosition, selectedIds, handleBulkApprove, ha
                         style={{ backgroundColor: '#52c41a' }}
                         onClick={handleBulkApprove}
                     >
-                        Approve All
+                        {selectedIds.length > 1 ? 'Approve Selected' : 'Approve'}
                     </Button>
                     <Button 
                         type="primary" 
@@ -35,7 +35,7 @@ const BulkActionPopup = ({ bulkPopupPosition, selectedIds, handleBulkApprove, ha
                         icon={<CloseCircleOutlined />} 
                         onClick={handleBulkReject}
                     >
-                        Reject All
+                        {selectedIds.length > 1 ? 'Reject Selected' : 'Reject'}
                     </Button>
                 </Space>
             </div>

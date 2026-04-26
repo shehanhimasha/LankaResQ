@@ -11,6 +11,7 @@ export const ShelterProvider = ({ children }) => {
             location: 'Colombo 07',
             contactNumber: '0112345678',
             maxCapacity: 150,
+            currentCount: 110,
             status: 'Available',
         },
         {
@@ -19,6 +20,7 @@ export const ShelterProvider = ({ children }) => {
             location: 'Galle Face',
             contactNumber: '0119876543',
             maxCapacity: 300,
+            currentCount: 300,
             status: 'Full',
         },
         {
@@ -27,6 +29,7 @@ export const ShelterProvider = ({ children }) => {
             location: 'Kandy',
             contactNumber: '0812223334',
             maxCapacity: 50,
+            currentCount: 0,
             status: 'Not Available',
         },
     ]);
@@ -34,8 +37,8 @@ export const ShelterProvider = ({ children }) => {
     const addShelter = (newShelter) => {
         const shelter = {
             ...newShelter,
-            id: shelters.length + 1,
-            // Status defaults to 'Available' if not provided, though form should provide it
+            id: shelters.length ? Math.max(...shelters.map(s => s.id)) + 1 : 1,
+            currentCount: newShelter.currentCount || 0
         };
         setShelters([...shelters, shelter]);
     };

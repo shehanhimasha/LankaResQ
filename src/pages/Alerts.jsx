@@ -1,5 +1,5 @@
 import React from 'react';
-import { Typography, List, Card, Button, Badge, Space, Empty } from 'antd';
+import { Typography, List, Card, Button, Badge, Space, Empty, Modal } from 'antd';
 import { BellOutlined, CheckOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNotification } from '../context/NotificationContext';
 
@@ -7,6 +7,17 @@ const { Title, Text } = Typography;
 
 const Alerts = () => {
     const { notifications, markAsRead, markAllAsRead, clearAll, unreadCount } = useNotification();
+
+    const confirmClearAll = () => {
+        Modal.confirm({
+            title: 'Are you sure you want to clear all notifications?',
+            content: 'This action cannot be undone.',
+            onOk: clearAll,
+            okText: 'Yes',
+            cancelText: 'No',
+            okType: 'danger'
+        });
+    };
 
     return (
         <div>
@@ -19,7 +30,7 @@ const Alerts = () => {
                         </Button>
                     )}
                     {notifications.length > 0 && (
-                        <Button danger icon={<DeleteOutlined />} onClick={clearAll}>
+                        <Button danger icon={<DeleteOutlined />} onClick={confirmClearAll}>
                             Clear All
                         </Button>
                     )}

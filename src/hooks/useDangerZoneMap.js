@@ -4,11 +4,13 @@ import L from 'leaflet';
 import { useDangerZone } from '../context/DangerZoneContext';
 
 const useDangerZoneMap = () => {
-    const { dangerZones, approveZone, rejectZone, bulkApproveZones, bulkRejectZones } = useDangerZone();
+    const { dangerZones, addZone, approveZone, rejectZone, bulkApproveZones, bulkRejectZones } = useDangerZone();
     
     // State for interactive map selection
     const [selectedIds, setSelectedIds] = useState([]);
     const [bulkPopupPosition, setBulkPopupPosition] = useState(null);
+    const [isAddPinModalOpen, setIsAddPinModalOpen] = useState(false);
+    const [clickedLocation, setClickedLocation] = useState(null);
 
     const pendingZones = dangerZones.filter(z => z.status === 'pending');
 
@@ -28,9 +30,26 @@ const useDangerZoneMap = () => {
         }
     };
 
-    const handleMapClick = () => {
+    const handleMapClick = (latlng) => {
         setSelectedIds([]);
         setBulkPopupPosition(null);
+        if (latlng) {
+            setClickedLocation(latlng);
+            setIsAddPinModalOpen(true);
+        }
+    };
+
+    const handleAddPinSubmit = (values) => {
+        addZone({
+            name: values.name,
+            severity: values.severity,
+            description: values.description,
+            coordinates: [clickedLocation.lat, clickedLocation.lng],
+            status: 'approved'
+        });
+        message.success('New danger zone pin added manually!');
+        setIsAddPinModalOpen(false);
+        setClickedLocation(null);
     };
 
     const toggleMarkerSelection = (zone) => {
@@ -72,7 +91,11 @@ const useDangerZoneMap = () => {
         handleBulkApprove,
         handleBulkReject,
         approveZone,
-        rejectZone
+        rejectZone,
+        isAddPinModalOpen,
+        setIsAddPinModalOpen,
+        clickedLocation,
+        handleAddPinSubmit
     };
 };
 
