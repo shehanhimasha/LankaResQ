@@ -19,13 +19,12 @@ const HelpDetailsModal = ({
             }
             open={isModalOpen}
             onCancel={handleModalClose}
-            maskClosable={!!selectedRequest?.feedback}
-            closable={!!selectedRequest?.feedback}
+            maskClosable={true}
+            closable={true}
             footer={[
                 <Button
                     key="close"
                     onClick={handleModalClose}
-                    disabled={selectedRequest && !selectedRequest.feedback}
                 >
                     Close
                 </Button>
@@ -83,7 +82,7 @@ const HelpDetailsModal = ({
 
                     <div>
                         <Typography.Text type="secondary" style={{ display: 'block', fontSize: '13px', marginBottom: '8px', fontWeight: 500 }}>
-                            Admin Feedback / Progress Notes {!selectedRequest.feedback && <span style={{ color: 'red' }}>*</span>}
+                            Admin Feedback / Progress Notes
                         </Typography.Text>
                         <Input.TextArea
                             rows={4}

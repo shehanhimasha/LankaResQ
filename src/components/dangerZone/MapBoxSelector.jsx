@@ -42,7 +42,7 @@ const MapBoxSelector = ({ onAreaSelected, onMapClick }) => {
                 onAreaSelected(bounds);
                 map.removeLayer(selectionRectangle);
             } else if (!isDragging && startLatLng) {
-                onMapClick();
+                onMapClick(startLatLng);
             }
             startLatLng = null;
             selectionRectangle = null;

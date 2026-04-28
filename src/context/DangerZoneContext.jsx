@@ -36,10 +36,14 @@ export const DangerZoneProvider = ({ children }) => {
         setDangerZones(zones => zones.map(z => ids.includes(z.id) ? { ...z, status: 'rejected' } : z));
     };
 
+    const addZone = (newZone) => {
+        setDangerZones([...dangerZones, { ...newZone, id: dangerZones.length ? Math.max(...dangerZones.map(z => z.id)) + 1 : 1 }]);
+    };
+
     const activeZones = dangerZones.filter(z => z.status === 'approved' || z.status === 'pending');
 
     return (
-        <DangerZoneContext.Provider value={{ dangerZones: activeZones, approveZone, rejectZone, bulkApproveZones, bulkRejectZones }}>
+        <DangerZoneContext.Provider value={{ dangerZones: activeZones, addZone, approveZone, rejectZone, bulkApproveZones, bulkRejectZones }}>
             {children}
         </DangerZoneContext.Provider>
     );
