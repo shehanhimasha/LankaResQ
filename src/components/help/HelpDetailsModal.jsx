@@ -1,5 +1,6 @@
 import React from 'react';
 import { Modal, Button, Row, Col, Typography, Tag, Divider, Input } from 'antd';
+import { useAuth } from '../../context/AuthContext';
 
 const HelpDetailsModal = ({
     isModalOpen,
@@ -9,6 +10,19 @@ const HelpDetailsModal = ({
     setFeedbackText,
     handleFeedbackSubmit
 }) => {
+    const { usersDb } = useAuth();
+
+    // Function to get current name for a log entry
+    const getAdminDisplayName = (log) => {
+        if (!log.adminEmail) return log.adminName;
+        
+        // Find the user in the current database by email
+        const currentUser = usersDb?.find(u => u.email === log.adminEmail);
+        
+        // If found, return their current name, otherwise fallback to the name captured at the time
+        return currentUser ? currentUser.name : log.adminName;
+    };
+
     return (
         <Modal
             title={
@@ -116,7 +130,7 @@ const HelpDetailsModal = ({
                                 {[...selectedRequest.logs].reverse().map((log, index) => (
                                     <div key={index} style={{ fontSize: '12px', marginBottom: '6px', borderBottom: index < selectedRequest.logs.length - 1 ? '1px dashed #e8e8e8' : 'none', paddingBottom: '4px' }}>
                                         <span style={{ color: '#888', marginRight: '8px' }}>[{log.time}]</span>
-                                        <span style={{ fontWeight: 500, marginRight: '4px' }}>{log.adminName}:</span>
+                                        <span style={{ fontWeight: 500, marginRight: '4px' }}>{getAdminDisplayName(log)}:</span>
                                         <span>{log.action}</span>
                                     </div>
                                 ))}
