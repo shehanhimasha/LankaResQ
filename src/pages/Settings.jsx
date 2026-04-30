@@ -14,13 +14,12 @@ import { useAuth } from '../context/AuthContext';
 const { Title, Text } = Typography;
 
 const Settings = () => {
-    const { user, updateProfile, usersDb } = useAuth();
+    const { user, updateProfile } = useAuth();
     const [form] = Form.useForm();
     const [imageUrl, setImageUrl] = useState(null);
 
     useEffect(() => {
-        if (user && usersDb) {
-            const masterProfile = usersDb.find(u => u.email === user.email);
+        if (user) {
             // If user has separate first/last name, use them, otherwise split the full name
             const firstName = user.firstName || user.name?.split(' ')[0] || '';
             const lastName = user.lastName || user.name?.split(' ').slice(1).join(' ') || '';
@@ -30,11 +29,10 @@ const Settings = () => {
                 lastName,
                 email: user.email,
                 contact: user.contact || '',
-                password: masterProfile?.password || ''
             });
             setImageUrl(user.profileImage || null);
         }
-    }, [user, usersDb, form]);
+    }, [user, form]);
 
     const getBase64 = (file) => {
         return new Promise((resolve, reject) => {

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card, Tooltip } from 'antd';
-import { PlusOutlined, DeleteOutlined, UserAddOutlined, SearchOutlined, EditOutlined } from '@ant-design/icons';
+import React, { useState, useEffect } from 'react';
+import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card, Tooltip, Descriptions } from 'antd';
+import { PlusOutlined, DeleteOutlined, UserAddOutlined, SearchOutlined, EditOutlined, ReloadOutlined, EyeOutlined } from '@ant-design/icons';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -9,7 +9,7 @@ const { Option } = Select;
 
 const Users = () => {
     // Access user management functions from UserContext
-    const { users, addUser, updateUser, deleteUser } = useUser();
+    const { users, addUser, updateUser, deleteUser, refreshUsers } = useUser();
     const { user: currentUser } = useAuth();
 
     // State to control the visibility of the "Add User" modal
@@ -17,19 +17,39 @@ const Users = () => {
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
     const [editForm] = Form.useForm();
+    const [isViewModalVisible, setIsViewModalVisible] = useState(false);
+    const [viewingUser, setViewingUser] = useState(null);
 
     // State for the search bar text
     const [searchText, setSearchText] = useState('');
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     // Ant Design Form instance to manage form data and validation
     const [form] = Form.useForm();
 
+    useEffect(() => {
+        // Fetch users from backend when the page mounts
+        const load = async () => {
+            if (typeof refreshUsers === 'function') {
+                setIsRefreshing(true);
+                const ok = await refreshUsers();
+                setIsRefreshing(false);
+                if (!ok) message.error('Failed to fetch users from backend');
+            }
+        };
+        load();
+    }, []);
+
     // Handler for form submission (adding a new user)
-    const handleAddUser = (values) => {
-        addUser(values);
-        message.success('User added successfully');
-        setIsModalVisible(false); // Close the modal
-        form.resetFields(); // Clear the form
+    const handleAddUser = async (values) => {
+        try {
+            await addUser(values);
+            message.success('User added successfully');
+            setIsModalVisible(false);
+            form.resetFields();
+        } catch (error) {
+            message.error(error.message || 'Failed to add user');
+        }
     };
 
     const handleEditClick = (record) => {
@@ -42,11 +62,15 @@ const Users = () => {
         setIsEditModalVisible(true);
     };
 
-    const handleEditSubmit = (values) => {
-        updateUser(editingUser.id, values);
-        message.success('User profile updated successfully');
-        setIsEditModalVisible(false);
-        setEditingUser(null);
+    const handleEditSubmit = async (values) => {
+        try {
+            await updateUser(editingUser.id, values);
+            message.success('User profile updated successfully');
+            setIsEditModalVisible(false);
+            setEditingUser(null);
+        } catch (error) {
+            message.error(error.message || 'Failed to update user');
+        }
     };
 
     // Filter users list based on search text and RBAC
@@ -73,9 +97,13 @@ const Users = () => {
             okText: 'Yes',
             okType: 'danger',
             cancelText: 'No',
-            onOk() {
-                deleteUser(id);
-                message.success('User deleted');
+            async onOk() {
+                try {
+                    await deleteUser(id);
+                    message.success('User deleted');
+                } catch (error) {
+                    message.error(error.message || 'Failed to delete user');
+                }
             },
         });
     };
@@ -154,6 +182,17 @@ const Users = () => {
 
                 return (
                     <Space size="middle">
+                        <Tooltip title="View">
+                            <Button
+                                type="default"
+                                style={{ color: '#722ed1', borderColor: '#d3adf7', background: '#f9f0ff' }}
+                                icon={<EyeOutlined />}
+                                onClick={() => {
+                                    setViewingUser(record);
+                                    setIsViewModalVisible(true);
+                                }}
+                            />
+                        </Tooltip>
                         <Tooltip title="Edit">
                             <Button
                                 type="default"
@@ -194,9 +233,27 @@ const Users = () => {
                         style={{ width: 250 }}
                     />
                 </div>
-                <Button type="primary" icon={<UserAddOutlined />} onClick={() => setIsModalVisible(true)} size="large">
-                    Add New User
-                </Button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                    <Button
+                        type="default"
+                        icon={<ReloadOutlined />}
+                        onClick={async () => {
+                            if (typeof refreshUsers !== 'function') return;
+                            setIsRefreshing(true);
+                            const ok = await refreshUsers();
+                            setIsRefreshing(false);
+                            if (ok) message.success('Refreshed from backend');
+                            else message.error('Failed to refresh users from backend');
+                        }}
+                        size="large"
+                        loading={isRefreshing}
+                    >
+                        Refresh
+                    </Button>
+                    <Button type="primary" icon={<UserAddOutlined />} onClick={() => setIsModalVisible(true)} size="large">
+                        Add New User
+                    </Button>
+                </div>
             </div>
 
             {/* --- Users List Table --- */}
@@ -319,6 +376,70 @@ const Users = () => {
                         </Space>
                     </Form.Item>
                 </Form>
+            </Modal>
+            {/* --- View User Modal --- */}
+            <Modal
+                title="User Details"
+                open={isViewModalVisible}
+                onCancel={() => {
+                    setIsViewModalVisible(false);
+                    setViewingUser(null);
+                }}
+                footer={[
+                    <Button key="close" onClick={() => {
+                        setIsViewModalVisible(false);
+                        setViewingUser(null);
+                    }}>
+                        Close
+                    </Button>
+                ]}
+                width={600}
+                centered
+            >
+                {viewingUser && (
+                    <Descriptions
+                        bordered
+                        column={1}
+                        size="middle"
+                        style={{ marginTop: 16 }}
+                        labelStyle={{ fontWeight: 600, width: '40%' }}
+                    >
+                        <Descriptions.Item label="First Name">
+                            {viewingUser.firstName || viewingUser.name?.split(' ')[0] || '—'}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Last Name">
+                            {viewingUser.lastName || viewingUser.name?.split(' ').slice(1).join(' ') || '—'}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Email">
+                            {viewingUser.email || '—'}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Mobile Number">
+                            {viewingUser.mobileNumber || viewingUser.contact || '—'}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Home Location">
+                            {viewingUser.homeLocation || '—'}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Current Location">
+                            {viewingUser.currentLocation || '—'}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Safety Status">
+                            {viewingUser.isSafe === true ? (
+                                <Tag color="success" style={{ fontSize: '13px', padding: '2px 12px' }}>Yes</Tag>
+                            ) : viewingUser.isSafe === false ? (
+                                <Tag color="error" style={{ fontSize: '13px', padding: '2px 12px' }}>No</Tag>
+                            ) : (
+                                <Tag color="default" style={{ fontSize: '13px', padding: '2px 12px' }}>Unknown</Tag>
+                            )}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Updated At">
+                            {viewingUser.updatedOn
+                                ? new Date(viewingUser.updatedOn).toLocaleString()
+                                : viewingUser.updatedAt
+                                    ? new Date(viewingUser.updatedAt).toLocaleString()
+                                    : '—'}
+                        </Descriptions.Item>
+                    </Descriptions>
+                )}
             </Modal>
         </div>
     );
