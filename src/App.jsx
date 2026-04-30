@@ -19,7 +19,9 @@ const AppContent = () => {
       theme={{
         algorithm: isDarkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
         token: {
-          colorPrimary: '#ff4d4f',
+          colorPrimary: '#D32F2F',
+          colorLink: '#D32F2F',
+          colorInfo: '#D32F2F',
         },
       }}
     >
