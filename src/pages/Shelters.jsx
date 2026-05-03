@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
-import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card, InputNumber, Tooltip, AutoComplete, Row, Col } from 'antd';
-import { PlusOutlined, DeleteOutlined, HomeOutlined, SearchOutlined, EditOutlined } from '@ant-design/icons';
+import React, { useState, useRef, useEffect } from 'react';
+import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card, InputNumber, Tooltip, AutoComplete, Row, Col, Switch, Descriptions } from 'antd';
+import { PlusOutlined, DeleteOutlined, HomeOutlined, SearchOutlined, EditOutlined, EyeOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { useShelter } from '../context/ShelterContext';
 import { useAuth } from '../context/AuthContext';
@@ -10,18 +10,23 @@ const { Option } = Select;
 
 const Shelters = () => {
     // Get shelter data and management functions from ShelterContext
-    const { shelters, addShelter, updateShelterStatus, deleteShelter, updateShelter } = useShelter();
+    const { shelters, loading, fetchShelters, addShelter, updateShelterStatus, deleteShelter, updateShelter } = useShelter();
     const { user: currentUser } = useAuth();
+
+    useEffect(() => {
+        fetchShelters();
+    }, []);
 
     // UI state for Modal visibility and Search functionality
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
     const [editingShelter, setEditingShelter] = useState(null);
+    const [isViewModalVisible, setIsViewModalVisible] = useState(false);
+    const [viewingShelter, setViewingShelter] = useState(null);
     const [searchText, setSearchText] = useState('');
 
     const [form] = Form.useForm();
     const [editForm] = Form.useForm();
-
     // Autocomplete state
     const [options, setOptions] = useState([]);
     const [searching, setSearching] = useState(false);
@@ -36,12 +41,11 @@ const Shelters = () => {
         setSearching(true);
         searchTimeout.current = setTimeout(async () => {
             try {
-                // Using Photon API for better fuzzy search (e.g. "open univer" matches "Open University")
+                // Using Photon API for better fuzzy search
                 const response = await axios.get(`https://photon.komoot.io/api/?q=${encodeURIComponent(value + ' Sri Lanka')}&limit=5`);
                 const newOptions = response.data.features.map(item => {
                     const props = item.properties;
                     const coords = item.geometry.coordinates; // [lon, lat]
-                    // Create a readable label from available properties
                     const label = [props.name, props.street, props.city, props.state].filter(Boolean).join(', ');
                     return {
                         value: label,
@@ -60,19 +64,21 @@ const Shelters = () => {
     };
 
     const handleSelect = (value, option, targetForm) => {
+        const lon = parseFloat(option.lon).toFixed(2);
+        const lat = parseFloat(option.lat).toFixed(2);
         targetForm.setFieldsValue({
-            location: value,
-            latitude: option.lat,
-            longitude: option.lon
+            locationName: value,
+            location: `${lon}, ${lat}`
         });
     };
 
     // Handler to save a new shelter
-    const handleAddShelter = (values) => {
-        addShelter(values);
-        message.success('Shelter added successfully');
-        setIsModalVisible(false);
-        form.resetFields();
+    const handleAddShelter = async (values) => {
+        const success = await addShelter(values);
+        if (success) {
+            setIsModalVisible(false);
+            form.resetFields();
+        }
     };
 
     const handleEditClick = (record) => {
@@ -117,7 +123,7 @@ const Shelters = () => {
             key: 'id',
         },
         {
-            title: 'Name',
+            title: 'Shelter Name',
             dataIndex: 'name',
             key: 'name',
             filters: Array.from(new Set(shelters.map(s => s.name))).map(n => ({ text: n, value: n })),
@@ -125,77 +131,71 @@ const Shelters = () => {
             filterSearch: true,
         },
         {
-            title: 'Location',
-            dataIndex: 'location',
-            key: 'location',
-            filters: Array.from(new Set(shelters.map(s => s.location))).map(l => ({ text: l, value: l })),
-            onFilter: (value, record) => record.location === value,
-            filterSearch: true,
+            title: 'Location Name',
+            dataIndex: 'locationName',
+            key: 'locationName',
         },
         {
-            title: 'Contact Number',
-            dataIndex: 'contactNumber',
-            key: 'contactNumber',
-        },
-        {
-            title: 'Current Count',
-            dataIndex: 'currentCount',
-            key: 'currentCount',
-        },
-        {
-            title: 'Max Capacity',
-            dataIndex: 'maxCapacity',
-            key: 'maxCapacity',
+            title: 'Capacity',
+            key: 'capacity',
+            render: (_, record) => `${record.currentCount} / ${record.maxCount}`
         },
         {
             title: 'Status',
             dataIndex: 'status',
             key: 'status',
-            render: (status, record) => {
-                const isUser = currentUser?.role === 'User' || currentUser?.role === 'user';
+            render: (status) => {
+                const isActive = status === 'Activate' || status === 'Active' || status === 'Available';
                 return (
-                    <Select
-                        defaultValue={status}
-                        style={{ width: 140 }}
-                        onChange={(value) => updateShelterStatus(record.id, value)}
-                        disabled={isUser}
-                    >
-                        <Option value="Available"><Tag color="success">AVAILABLE</Tag></Option>
-                        <Option value="Full"><Tag color="warning">FULL</Tag></Option>
-                        <Option value="Not Available"><Tag color="error">NOT AVAILABLE</Tag></Option>
-                    </Select>
+                    <Tag color={isActive ? "success" : "error"}>
+                        {isActive ? "ACTIVATE" : "DEACTIVATE"}
+                    </Tag>
                 );
             },
         },
     ];
 
-    if (currentUser?.role !== 'User' && currentUser?.role !== 'user') {
-        columns.push({
-            title: 'Action',
-            key: 'action',
-            render: (_, record) => (
+    columns.push({
+        title: 'Action',
+        key: 'action',
+        render: (_, record) => {
+            const isActive = record.status === 'Activate' || record.status === 'Active' || record.status === 'Available';
+            const isAdmin = currentUser?.role !== 'User' && currentUser?.role !== 'user';
+            return (
                 <Space size="middle">
-                    <Tooltip title="Edit">
+                    <Tooltip title="View">
                         <Button
                             type="default"
-                            style={{ color: '#1890ff', borderColor: '#91d5ff', background: '#e6f7ff' }}
-                            icon={<EditOutlined />}
-                            onClick={() => handleEditClick(record)}
+                            style={{ color: '#52c41a', borderColor: '#b7eb8f', background: '#f6ffed' }}
+                            icon={<EyeOutlined />}
+                            onClick={() => {
+                                setViewingShelter(record);
+                                setIsViewModalVisible(true);
+                            }}
                         />
                     </Tooltip>
-                    <Tooltip title="Delete">
-                        <Button
-                            type="default"
-                            danger
-                            style={{ color: '#f5222d', borderColor: '#ffa39e', background: '#fff1f0' }}
-                            icon={<DeleteOutlined />}
-                            onClick={() => handleDelete(record.id)}
-                        />
-                    </Tooltip>
+                    {isAdmin && (
+                        <>
+                            <Tooltip title="Edit">
+                                <Button
+                                    type="default"
+                                    style={{ color: '#1890ff', borderColor: '#91d5ff', background: '#e6f7ff' }}
+                                    icon={<EditOutlined />}
+                                    onClick={() => handleEditClick(record)}
+                                />
+                            </Tooltip>
+                            <Tooltip title={isActive ? "Deactivate" : "Activate"}>
+                                <Switch
+                                    checked={isActive}
+                                    onChange={(checked) => updateShelterStatus(record.id, checked ? 'Activate' : 'Deactivate')}
+                                />
+                            </Tooltip>
+                        </>
+                    )}
                 </Space>
-            ),
-        });
-    }
+            );
+        },
+    });
 
     return (
         <div>
@@ -222,7 +222,7 @@ const Shelters = () => {
 
             {/* --- Shelters Table --- */}
             <Card bordered={false} style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
-                <Table columns={columns} dataSource={filteredShelters} rowKey="id" />
+                <Table columns={columns} dataSource={filteredShelters} rowKey="id" loading={loading} />
             </Card>
 
             {/* --- Add New Shelter Modal --- */}
@@ -239,7 +239,7 @@ const Shelters = () => {
                     onFinish={handleAddShelter}
                 >
                     <Row gutter={16}>
-                        <Col span={12}>
+                        <Col span={24}>
                             <Form.Item
                                 name="name"
                                 label="Shelter Name"
@@ -248,88 +248,65 @@ const Shelters = () => {
                                 <Input placeholder="City Community Center" prefix={<HomeOutlined />} />
                             </Form.Item>
                         </Col>
-                        <Col span={12}>
-                            <Form.Item
-                                name="contactNumber"
-                                label="Contact Number"
-                                rules={[{ required: true, message: 'Please enter contact number' }]}
-                            >
-                                <Input placeholder="0112345678" />
-                            </Form.Item>
-                        </Col>
                     </Row>
 
                     <Row gutter={16}>
-                        <Col span={24}>
+                        <Col span={12}>
                             <Form.Item
-                                name="location"
-                                label="Location"
-                                rules={[{ required: true, message: 'Please enter or select a location' }]}
+                                name="locationName"
+                                label="Location Name"
+                                rules={[{ required: true, message: 'Please enter location name' }]}
                             >
                                 <AutoComplete
                                     options={options}
                                     onSearch={handleSearch}
                                     onSelect={(val, opt) => handleSelect(val, opt, form)}
-                                    placeholder="Search for a location in Sri Lanka (e.g. Colombo 07)"
+                                    placeholder="Search location (e.g. Colombo 07)"
                                     notFoundContent={searching ? "Searching..." : "No location found"}
                                 />
                             </Form.Item>
                         </Col>
-                    </Row>
-
-                    <Row gutter={16}>
                         <Col span={12}>
                             <Form.Item
-                                name="latitude"
-                                label="Latitude"
-                                rules={[{ required: true, message: 'Please enter latitude' }]}
+                                name="location"
+                                label="Location"
+                                rules={[{ required: true, message: 'Please enter location' }]}
                             >
-                                <Input placeholder="6.9271" />
-                            </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                            <Form.Item
-                                name="longitude"
-                                label="Longitude"
-                                rules={[{ required: true, message: 'Please enter longitude' }]}
-                            >
-                                <Input placeholder="79.8612" />
+                                <Input placeholder="Longitude, Latitude" />
                             </Form.Item>
                         </Col>
                     </Row>
 
                     <Row gutter={16}>
-                        <Col span={8}>
+                        <Col span={12}>
                             <Form.Item
                                 name="currentCount"
                                 label="Current Count"
                                 initialValue={0}
-                                rules={[{ required: true, message: 'Please enter current occupant count' }]}
+                                dependencies={['maxCount']}
+                                rules={[
+                                    { required: true, message: 'Please enter current occupant count' },
+                                    ({ getFieldValue }) => ({
+                                        validator(_, value) {
+                                            const max = getFieldValue('maxCount');
+                                            if (value === undefined || max === undefined || value <= max) {
+                                                return Promise.resolve();
+                                            }
+                                            return Promise.reject(new Error('Current count cannot exceed maximum count'));
+                                        },
+                                    }),
+                                ]}
                             >
                                 <InputNumber min={0} style={{ width: '100%' }} placeholder="0" />
                             </Form.Item>
                         </Col>
-                        <Col span={8}>
+                        <Col span={12}>
                             <Form.Item
-                                name="maxCapacity"
-                                label="Maximum Capacity"
-                                rules={[{ required: true, message: 'Please enter max capacity' }]}
+                                name="maxCount"
+                                label="Maximum Count"
+                                rules={[{ required: true, message: 'Please enter max count' }]}
                             >
                                 <InputNumber min={1} style={{ width: '100%' }} placeholder="150" />
-                            </Form.Item>
-                        </Col>
-                        <Col span={8}>
-                            <Form.Item
-                                name="status"
-                                label="Initial Status"
-                                initialValue="Available"
-                                rules={[{ required: true, message: 'Please select status' }]}
-                            >
-                                <Select>
-                                    <Option value="Available">Available</Option>
-                                    <Option value="Full">Full</Option>
-                                    <Option value="Not Available">Not Available</Option>
-                                </Select>
                             </Form.Item>
                         </Col>
                     </Row>
@@ -337,7 +314,7 @@ const Shelters = () => {
                     <Form.Item style={{ marginBottom: 0 }}>
                         <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
                             <Button onClick={() => setIsModalVisible(false)}>Cancel</Button>
-                            <Button type="primary" htmlType="submit">
+                            <Button type="primary" htmlType="submit" loading={loading}>
                                 Add Shelter
                             </Button>
                         </Space>
@@ -362,21 +339,16 @@ const Shelters = () => {
                     onFinish={handleEditSubmit}
                 >
                     <Row gutter={16}>
-                        <Col span={12}>
+                        <Col span={24}>
                             <Form.Item name="name" label="Shelter Name" rules={[{ required: true, message: 'Please enter shelter name' }]}>
                                 <Input prefix={<HomeOutlined />} />
-                            </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                            <Form.Item name="contactNumber" label="Contact Number" rules={[{ required: true, message: 'Please enter contact number' }]}>
-                                <Input />
                             </Form.Item>
                         </Col>
                     </Row>
 
                     <Row gutter={16}>
-                        <Col span={24}>
-                            <Form.Item name="location" label="Location" rules={[{ required: true, message: 'Please enter or select a location' }]}>
+                        <Col span={12}>
+                            <Form.Item name="locationName" label="Location Name" rules={[{ required: true, message: 'Please enter location name' }]}>
                                 <AutoComplete
                                     options={options}
                                     onSearch={handleSearch}
@@ -386,39 +358,38 @@ const Shelters = () => {
                                 />
                             </Form.Item>
                         </Col>
-                    </Row>
-
-                    <Row gutter={16}>
                         <Col span={12}>
-                            <Form.Item name="latitude" label="Latitude" rules={[{ required: true, message: 'Please enter latitude' }]}>
-                                <Input />
-                            </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                            <Form.Item name="longitude" label="Longitude" rules={[{ required: true, message: 'Please enter longitude' }]}>
-                                <Input />
+                            <Form.Item name="location" label="Location" rules={[{ required: true, message: 'Please enter location' }]}>
+                                <Input placeholder="Longitude, Latitude" />
                             </Form.Item>
                         </Col>
                     </Row>
 
                     <Row gutter={16}>
-                        <Col span={8}>
-                            <Form.Item name="currentCount" label="Current Count" rules={[{ required: true, message: 'Please enter current occupant count' }]}>
+                        <Col span={12}>
+                            <Form.Item 
+                                name="currentCount" 
+                                label="Current Count" 
+                                dependencies={['maxCount']}
+                                rules={[
+                                    { required: true, message: 'Please enter current occupant count' },
+                                    ({ getFieldValue }) => ({
+                                        validator(_, value) {
+                                            const max = getFieldValue('maxCount');
+                                            if (value === undefined || max === undefined || value <= max) {
+                                                return Promise.resolve();
+                                            }
+                                            return Promise.reject(new Error('Current count cannot exceed maximum count'));
+                                        },
+                                    }),
+                                ]}
+                            >
                                 <InputNumber min={0} style={{ width: '100%' }} />
                             </Form.Item>
                         </Col>
-                        <Col span={8}>
-                            <Form.Item name="maxCapacity" label="Maximum Capacity" rules={[{ required: true, message: 'Please enter max capacity' }]}>
+                        <Col span={12}>
+                            <Form.Item name="maxCount" label="Maximum Count" rules={[{ required: true, message: 'Please enter max count' }]}>
                                 <InputNumber min={1} style={{ width: '100%' }} />
-                            </Form.Item>
-                        </Col>
-                        <Col span={8}>
-                            <Form.Item name="status" label="Status" rules={[{ required: true, message: 'Please select status' }]}>
-                                <Select>
-                                    <Option value="Available">Available</Option>
-                                    <Option value="Full">Full</Option>
-                                    <Option value="Not Available">Not Available</Option>
-                                </Select>
                             </Form.Item>
                         </Col>
                     </Row>
@@ -430,6 +401,42 @@ const Shelters = () => {
                         </Space>
                     </Form.Item>
                 </Form>
+            </Modal>
+            {/* --- View Shelter Details Modal --- */}
+            <Modal
+                title="Shelter Details"
+                open={isViewModalVisible}
+                onCancel={() => {
+                    setIsViewModalVisible(false);
+                    setViewingShelter(null);
+                }}
+                footer={[
+                    <Button key="close" onClick={() => setIsViewModalVisible(false)}>
+                        Close
+                    </Button>
+                ]}
+                width={700}
+            >
+                {viewingShelter && (
+                    <Descriptions bordered column={1}>
+                        <Descriptions.Item label="ID">{viewingShelter.id}</Descriptions.Item>
+                        <Descriptions.Item label="Shelter Name">{viewingShelter.name}</Descriptions.Item>
+                        <Descriptions.Item label="Location Name">{viewingShelter.locationName}</Descriptions.Item>
+                        <Descriptions.Item label="Coordinates (Lon, Lat)">{viewingShelter.location}</Descriptions.Item>
+                        <Descriptions.Item label="Current Occupants">{viewingShelter.currentCount}</Descriptions.Item>
+                        <Descriptions.Item label="Maximum Capacity">{viewingShelter.maxCount}</Descriptions.Item>
+                        <Descriptions.Item label="Status">
+                            <Tag color={(viewingShelter.status === 'Activate' || viewingShelter.status === 'Active' || viewingShelter.status === 'Available') ? "success" : "error"}>
+                                {(viewingShelter.status === 'Activate' || viewingShelter.status === 'Active' || viewingShelter.status === 'Available') ? "ACTIVATE" : "DEACTIVATE"}
+                            </Tag>
+                        </Descriptions.Item>
+                        {viewingShelter.createdOn && (
+                            <Descriptions.Item label="Created Date">
+                                {new Date(viewingShelter.createdOn).toISOString().split('T')[0]}
+                            </Descriptions.Item>
+                        )}
+                    </Descriptions>
+                )}
             </Modal>
         </div>
     );

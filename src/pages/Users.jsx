@@ -22,7 +22,6 @@ const Users = () => {
 
     // State for the search bar text
     const [searchText, setSearchText] = useState('');
-    const [isRefreshing, setIsRefreshing] = useState(false);
 
     // Ant Design Form instance to manage form data and validation
     const [form] = Form.useForm();
@@ -31,14 +30,12 @@ const Users = () => {
         // Fetch users from backend when the page mounts
         const load = async () => {
             if (typeof refreshUsers === 'function') {
-                setIsRefreshing(true);
                 const ok = await refreshUsers();
-                setIsRefreshing(false);
                 if (!ok) message.error('Failed to fetch users from backend');
             }
         };
         load();
-    }, []);
+    }, [refreshUsers]);
 
     // Handler for form submission (adding a new user)
     const handleAddUser = async (values) => {
@@ -234,22 +231,6 @@ const Users = () => {
                     />
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                    <Button
-                        type="default"
-                        icon={<ReloadOutlined />}
-                        onClick={async () => {
-                            if (typeof refreshUsers !== 'function') return;
-                            setIsRefreshing(true);
-                            const ok = await refreshUsers();
-                            setIsRefreshing(false);
-                            if (ok) message.success('Refreshed from backend');
-                            else message.error('Failed to refresh users from backend');
-                        }}
-                        size="large"
-                        loading={isRefreshing}
-                    >
-                        Refresh
-                    </Button>
                     <Button type="primary" icon={<UserAddOutlined />} onClick={() => setIsModalVisible(true)} size="large">
                         Add New User
                     </Button>

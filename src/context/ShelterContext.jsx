@@ -1,46 +1,40 @@
 import React, { createContext, useState, useContext } from 'react';
+import { message } from 'antd';
+import { createShelter, getShelters } from '../services/shelterService';
 
 const ShelterContext = createContext(null);
 
 export const ShelterProvider = ({ children }) => {
-    // Mock Shelters Data
-    const [shelters, setShelters] = useState([
-        {
-            id: 1,
-            name: 'City Community Center',
-            location: 'Colombo 07',
-            contactNumber: '0112345678',
-            maxCapacity: 150,
-            currentCount: 110,
-            status: 'Available',
-        },
-        {
-            id: 2,
-            name: 'Galle Face School Hall',
-            location: 'Galle Face',
-            contactNumber: '0119876543',
-            maxCapacity: 300,
-            currentCount: 300,
-            status: 'Full',
-        },
-        {
-            id: 3,
-            name: 'Temple of the Tooth Shelter',
-            location: 'Kandy',
-            contactNumber: '0812223334',
-            maxCapacity: 50,
-            currentCount: 0,
-            status: 'Not Available',
-        },
-    ]);
+    const [shelters, setShelters] = useState([]);
+    const [loading, setLoading] = useState(false);
 
-    const addShelter = (newShelter) => {
-        const shelter = {
-            ...newShelter,
-            id: shelters.length ? Math.max(...shelters.map(s => s.id)) + 1 : 1,
-            currentCount: newShelter.currentCount || 0
-        };
-        setShelters([...shelters, shelter]);
+    const fetchShelters = async () => {
+        setLoading(true);
+        try {
+            const data = await getShelters();
+            setShelters(data.items || []);
+        } catch (error) {
+            console.error('Error fetching shelters:', error);
+            message.error('Failed to load shelters');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const addShelter = async (newShelter) => {
+        setLoading(true);
+        try {
+            await createShelter(newShelter);
+            message.success("Shelter created successfully");
+            await fetchShelters(); // refresh table
+            return true;
+        } catch (error) {
+            console.error('Error creating shelter:', error);
+            message.error(error.response?.data?.message || 'Failed to create shelter');
+            return false;
+        } finally {
+            setLoading(false);
+        }
     };
 
     const updateShelterStatus = (id, newStatus) => {
@@ -56,7 +50,7 @@ export const ShelterProvider = ({ children }) => {
     };
 
     return (
-        <ShelterContext.Provider value={{ shelters, addShelter, updateShelterStatus, updateShelter, deleteShelter }}>
+        <ShelterContext.Provider value={{ shelters, loading, fetchShelters, addShelter, updateShelterStatus, updateShelter, deleteShelter }}>
             {children}
         </ShelterContext.Provider>
     );
