@@ -6,9 +6,12 @@ const AuthContext = createContext(null);
 
 const normalizeUserRecord = (user) => {
     const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+    // Support various ID field names from backend
+    const userId = user.id || user._id || user.userId || user.Id;
+    
     return {
         ...user,
-        id: user.id,
+        id: userId,
         name: fullName || user.name || user.email || 'Unknown',
         email: user.email || '',
         role: typeof user.role === 'object' ? user.role.name : user.role || 'User',
@@ -87,7 +90,14 @@ export const AuthProvider = ({ children }) => {
             }
 
             if (!isAllowed) {
-                throw new Error('Access denied. Only Admin, Super Admin, and Co-Admin users can log in.');
+                throw new Error('Access denied. Only Admin and Super Admin users can log in.');
+            }
+
+            // Check if user is active
+            const status = (userData.status || (userData.isSafe ? 'Active' : 'Inactive') || 'Active').toLowerCase();
+            const inactiveStates = ['inactive', 'deactivate', 'deactivated'];
+            if (inactiveStates.includes(status)) {
+                throw new Error('Account deactivated. Please activate the account.');
             }
 
             // Persist session (including token) in localStorage
@@ -167,6 +177,25 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // Optimistic status toggle — updates local state instantly, then syncs with backend
+    // Uses email as the unique lookup key for local state (IDs may be duplicated/undefined)
+    const updateUserStatus = async (id, email, newStatus, isSafe) => {
+        // 1. Optimistic local update using email as unique key
+        setUsersDb(prev => prev.map(u => u.email === email ? { ...u, status: newStatus, isSafe } : u));
+
+        // 2. Sync with backend in background
+        try {
+            await api.put(`/users/${id}`, { status: newStatus, isSafe });
+            // Re-fetch to ensure consistency
+            await fetchRemoteUsers();
+        } catch (error) {
+            // Revert on failure
+            console.error('Failed to update user status:', error);
+            await fetchRemoteUsers();
+            throw error;
+        }
+    };
+
     // Delete a user via backend API
     const deleteUserDb = async (id) => {
         try {
@@ -189,7 +218,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, updateProfile, usersDb, addUser, updateUserDb, deleteUserDb, refreshUsers, loading }}>
+        <AuthContext.Provider value={{ user, login, logout, updateProfile, usersDb, addUser, updateUserDb, updateUserStatus, deleteUserDb, refreshUsers, loading }}>
             {!loading && children}
         </AuthContext.Provider>
     );
