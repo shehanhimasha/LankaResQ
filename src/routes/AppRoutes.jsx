@@ -10,6 +10,7 @@ import Family from '../pages/Family';
 import Alerts from '../pages/Alerts';
 import Users from '../pages/Users';
 import Settings from '../pages/Settings';
+import Profile from '../pages/Profile';
 import DangerZone from '../pages/DangerZone';
 
 const AppRoutes = () => {
@@ -26,6 +27,7 @@ const AppRoutes = () => {
                 <Route path="/danger-zone" element={<DangerZone />} />
                 <Route path="/users" element={<Users />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/profile" element={<Profile />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

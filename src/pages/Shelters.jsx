@@ -198,26 +198,26 @@ const Shelters = () => {
     });
 
     return (
-        <div>
+        <div style={{ padding: '24px', background: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             {/* --- Header Section --- */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <Title level={2} style={{ margin: 0 }}>Shelter Management</Title>
-                    {/* Search Input */}
-                    <Input
+                <Title level={3} style={{ margin: 0 }}>Shelter Management</Title>
+                
+                <Space size="middle">
+                    <Input.Search
                         placeholder="Search shelters..."
-                        prefix={<SearchOutlined />}
+                        allowClear
                         value={searchText}
                         onChange={e => setSearchText(e.target.value)}
-                        style={{ width: 250 }}
+                        style={{ width: 350 }}
                     />
-                </div>
-                {/* Add Shelter Button */}
-                {currentUser?.role !== 'User' && currentUser?.role !== 'user' && (
-                    <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalVisible(true)} size="large">
-                        Add New Shelter
-                    </Button>
-                )}
+                    {/* Add Shelter Button */}
+                    {currentUser?.role !== 'User' && currentUser?.role !== 'user' && (
+                        <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalVisible(true)}>
+                            New Shelter
+                        </Button>
+                    )}
+                </Space>
             </div>
 
             {/* --- Shelters Table --- */}

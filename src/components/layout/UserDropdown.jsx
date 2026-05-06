@@ -13,7 +13,7 @@ const UserDropdown = ({ navigate }) => {
             key: 'profile',
             label: 'Profile Settings',
             icon: <SettingOutlined />,
-            onClick: () => navigate('/settings'),
+            onClick: () => navigate('/profile'),
         },
         {
             type: 'divider',

@@ -20,9 +20,9 @@ const Alerts = () => {
     };
 
     return (
-        <div>
+        <div style={{ padding: '24px', background: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                <Title level={2} style={{ margin: 0 }}>System Alerts</Title>
+                <Title level={3} style={{ margin: 0 }}>System Alerts</Title>
                 <Space>
                     {unreadCount > 0 && (
                         <Button icon={<CheckOutlined />} onClick={markAllAsRead}>
