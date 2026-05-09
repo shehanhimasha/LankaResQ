@@ -1,16 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card, Tooltip, Descriptions, Switch, Row, Col } from 'antd';
-import { PlusOutlined, UserAddOutlined, SearchOutlined, EditOutlined, ReloadOutlined, EyeOutlined } from '@ant-design/icons';
-import { useUser } from '../context/UserContext';
-import { useAuth } from '../context/AuthContext';
+import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card, Tooltip, Descriptions, Switch, Row, Col, Upload, Avatar } from 'antd';
+import { PlusOutlined, UserAddOutlined, SearchOutlined, EditOutlined, ReloadOutlined, EyeOutlined, UploadOutlined, UserOutlined } from '@ant-design/icons';
+import { useUser } from '../../context/UserContext';
+import { useAuth } from '../../context/AuthContext';
 
 const { Title } = Typography;
 const { Option } = Select;
 
 const Users = () => {
     // Access user management functions from UserContext
-    const { users, addUser, updateUser, updateUserStatus, refreshUsers } = useUser();
+    const { users, totalUsers, addUser, registerUser, updateUser, refreshUsers } = useUser();
     const { user: currentUser } = useAuth();
+
+    // Pagination and Filter State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
+    const [loading, setLoading] = useState(false);
 
     // State to control the visibility of the "Add User" modal
     const [isModalVisible, setIsModalVisible] = useState(false);
@@ -27,26 +32,70 @@ const Users = () => {
     const [form] = Form.useForm();
 
     useEffect(() => {
-        // Fetch users from backend when the page mounts
+        // Fetch users from backend when the page mounts or filters change
         const load = async () => {
             if (typeof refreshUsers === 'function') {
-                const ok = await refreshUsers();
-                if (!ok) message.error('Failed to fetch users from backend');
+                setLoading(true);
+                try {
+                    await refreshUsers({
+                        Query: searchText,
+                        Page: currentPage,
+                        PageSize: pageSize
+                    });
+                } catch (error) {
+                    message.error('Failed to fetch users from backend');
+                } finally {
+                    setLoading(false);
+                }
             }
         };
-        load();
-    }, [refreshUsers]);
+
+        // Debounce search input to avoid excessive API calls
+        const timeoutId = setTimeout(() => {
+            load();
+        }, 500);
+
+        return () => clearTimeout(timeoutId);
+    }, [refreshUsers, searchText, currentPage, pageSize]);
+
+    const handleTableChange = (pagination) => {
+        setCurrentPage(pagination.current);
+        setPageSize(pagination.pageSize);
+    };
 
     // Handler for form submission (adding a new user)
     const handleAddUser = async (values) => {
         try {
-            await addUser(values);
-            message.success('User added successfully');
+            const formData = new FormData();
+            formData.append('FirstName', values.firstName);
+            formData.append('LastName', values.lastName);
+            formData.append('Email', values.email);
+            formData.append('MobileNumber', values.mobileNumber);
+            formData.append('Password', values.password);
+            formData.append('RoleId', values.roleId);
+
+            // These fields are removed from the form but still sent as defaults to the API
+            formData.append('HomeLocation', '');
+            formData.append('CurrentLocation', '');
+            formData.append('IsVerified', 'false');
+            formData.append('IsSafe', 'true');
+            // ProfilePicture is not added here as per user request
+
+            await registerUser(formData);
+            message.success('User registered successfully');
             setIsModalVisible(false);
             form.resetFields();
         } catch (error) {
-            message.error(error.message || 'Failed to add user');
+            console.error('Registration error:', error);
+            message.error(error.message || 'Failed to register user');
         }
+    };
+
+    const normFile = (e) => {
+        if (Array.isArray(e)) {
+            return e;
+        }
+        return e?.fileList;
     };
 
     const handleEditClick = (record) => {
@@ -91,81 +140,52 @@ const Users = () => {
     // Configuration for the Users Table columns
     const columns = [
         {
-            title: 'ID',
-            dataIndex: 'id',
-            key: 'id',
+            title: 'First Name',
+            dataIndex: 'firstName',
+            key: 'firstName',
+            sorter: true,
         },
         {
-            title: 'Name',
-            dataIndex: 'name',
-            key: 'name',
-            filters: Array.from(new Set(users.map(u => u.name))).map(n => ({ text: n, value: n })),
-            onFilter: (value, record) => record.name === value,
-            filterSearch: true,
+            title: 'Last Name',
+            dataIndex: 'lastName',
+            key: 'lastName',
+            sorter: true,
         },
         {
             title: 'Email',
             dataIndex: 'email',
             key: 'email',
-            filters: Array.from(new Set(users.map(u => u.email))).map(e => ({ text: e, value: e })),
-            onFilter: (value, record) => record.email === value,
-            filterSearch: true,
         },
         {
-            title: 'Contact No',
-            dataIndex: 'contact',
-            key: 'contact',
+            title: 'Mobile No',
+            dataIndex: 'mobileNumber',
+            key: 'mobileNumber',
         },
         {
             title: 'Role',
             dataIndex: 'role',
             key: 'role',
-            filters: [
-                { text: 'Admin', value: 'Admin' },
-                { text: 'Super Admin', value: 'Super Admin' },
-                { text: 'User', value: 'User' },
-            ],
-            onFilter: (value, record) => record.role === value,
             render: (role) => {
-                // Color-code roles for better visibility
                 let color = role === 'Admin' ? 'red' : (role === 'Super Admin' || role === 'Co-Admin') ? 'blue' : 'green';
-                return <Tag color={color}>{role.toUpperCase()}</Tag>;
+                return <Tag color={color}>{role ? role.toUpperCase() : 'USER'}</Tag>;
             },
-        },
-        {
-            title: 'Status',
-            dataIndex: 'status',
-            key: 'status',
-            filters: [
-                { text: 'Active', value: 'Active' },
-                { text: 'Inactive', value: 'Inactive' },
-            ],
-            onFilter: (value, record) => record.status === value,
-            render: (status) => (
-                <Tag color={status === 'Active' ? 'success' : 'default'}>
-                    {status.toUpperCase()}
-                </Tag>
-            ),
-        },
-        {
-            title: 'Joined Date',
-            dataIndex: 'joinedDate',
-            key: 'joinedDate',
         },
         {
             title: 'Action',
             key: 'action',
+            fixed: 'right',
+            width: 150,
             render: (_, record) => {
                 const isCurrentUserSuperAdmin = currentUser?.role === 'Super Admin' || currentUser?.role === 'super admin' || currentUser?.role === 'Co-Admin' || currentUser?.role === 'co-admin';
                 const isTargetAdmin = record.role === 'Admin' || record.role === 'admin';
                 const isTargetSuperAdmin = record.role === 'Super Admin' || record.role === 'super admin' || record.role === 'Co-Admin' || record.role === 'co-admin';
-                const isActive = record.status === 'Active' || record.status === 'Activate';
 
                 return (
-                    <Space size="middle">
+                    <Space size="small">
                         <Tooltip title="View">
                             <Button
                                 type="default"
+                                size="small"
                                 style={{ color: '#722ed1', borderColor: '#d3adf7', background: '#f9f0ff' }}
                                 icon={<EyeOutlined />}
                                 onClick={() => {
@@ -177,28 +197,13 @@ const Users = () => {
                         <Tooltip title="Edit">
                             <Button
                                 type="default"
+                                size="small"
                                 style={{ color: '#1890ff', borderColor: '#91d5ff', background: '#e6f7ff' }}
                                 icon={<EditOutlined />}
                                 onClick={() => handleEditClick(record)}
                                 disabled={isTargetAdmin || (isCurrentUserSuperAdmin && isTargetSuperAdmin)}
                             />
                         </Tooltip>
-                        <Tooltip title={isActive ? "Deactivate User" : "Activate User"}>
-                            <Switch
-                                checked={isActive}
-                                disabled={isTargetAdmin || (isCurrentUserSuperAdmin && isTargetSuperAdmin)}
-                                onChange={async (checked) => {
-                                    try {
-                                        const newStatus = checked ? 'Activate' : 'Deactivate';
-                                        await updateUserStatus(record.id, record.email, newStatus, checked);
-                                        message.success(`User ${newStatus.toLowerCase()}d successfully`);
-                                    } catch (error) {
-                                        message.error('Failed to update user status');
-                                    }
-                                }}
-                            />
-                        </Tooltip>
-
                     </Space>
                 );
             },
@@ -213,11 +218,15 @@ const Users = () => {
 
                 <Space size="middle">
                     <Input.Search
-                        placeholder="Search users..."
+                        placeholder="Search by name or email..."
                         allowClear
                         value={searchText}
-                        onChange={e => setSearchText(e.target.value)}
-                        style={{ width: 350 }}
+                        onChange={e => {
+                            setSearchText(e.target.value);
+                            setCurrentPage(1);
+                        }}
+                        onSearch={() => setCurrentPage(1)}
+                        style={{ width: 300 }}
                     />
                     <Button type="primary" icon={<UserAddOutlined />} onClick={() => setIsModalVisible(true)}>
                         New User
@@ -226,11 +235,20 @@ const Users = () => {
             </div>
 
             {/* --- Users List Table --- */}
-            <Card bordered={false} style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
-                <Table 
-                    columns={columns} 
-                    dataSource={filteredUsers} 
-                    rowKey={(record) => record.id || record.email || Math.random().toString()} 
+            <Card bordered={false} bodyStyle={{ padding: 0 }} style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
+                <Table
+                    columns={columns}
+                    dataSource={users}
+                    rowKey={(record) => record.id || record.email || Math.random().toString()}
+                    pagination={{
+                        current: currentPage,
+                        pageSize: pageSize,
+                        total: totalUsers,
+                        showSizeChanger: true,
+                        showTotal: (total) => `Total ${total} users`,
+                    }}
+                    onChange={handleTableChange}
+                    scroll={{ x: 1200 }}
                 />
             </Card>
 
@@ -245,14 +263,30 @@ const Users = () => {
                     form={form}
                     layout="vertical"
                     onFinish={handleAddUser}
+                    initialValues={{
+                        roleId: 1, // Default to Admin role
+                    }}
                 >
-                    <Form.Item
-                        name="name"
-                        label="Full Name"
-                        rules={[{ required: true, message: 'Please enter the name' }]}
-                    >
-                        <Input placeholder="John Doe" />
-                    </Form.Item>
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item
+                                name="firstName"
+                                label="First Name"
+                                rules={[{ required: true, message: 'Please enter first name' }]}
+                            >
+                                <Input placeholder="John" />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item
+                                name="lastName"
+                                label="Last Name"
+                                rules={[{ required: true, message: 'Please enter last name' }]}
+                            >
+                                <Input placeholder="Doe" />
+                            </Form.Item>
+                        </Col>
+                    </Row>
 
                     <Form.Item
                         name="email"
@@ -262,27 +296,15 @@ const Users = () => {
                             { type: 'email', message: 'Please enter a valid email' }
                         ]}
                     >
-                        <Input placeholder="email@example.com" />
+                        <Input placeholder="john.doe@example.com" />
                     </Form.Item>
 
                     <Form.Item
-                        name="contact"
-                        label="Contact No"
-                        rules={[{ required: true, message: 'Please enter contact number' }]}
+                        name="mobileNumber"
+                        label="Mobile Number"
+                        rules={[{ required: true, message: 'Please enter mobile number' }]}
                     >
                         <Input placeholder="07XXXXXXXX" />
-                    </Form.Item>
-
-                    <Form.Item
-                        name="role"
-                        label="Role"
-                        initialValue="User"
-                        rules={[{ required: true, message: 'Please select a role' }]}
-                    >
-                        <Select>
-                            <Option value="Admin">Admin</Option>
-                            <Option value="Super Admin">Super Admin</Option>
-                        </Select>
                     </Form.Item>
 
                     <Form.Item
@@ -293,11 +315,22 @@ const Users = () => {
                         <Input.Password placeholder="Password" />
                     </Form.Item>
 
-                    <Form.Item>
+                    <Form.Item
+                        name="roleId"
+                        label="Role"
+                        rules={[{ required: true, message: 'Please select a role' }]}
+                    >
+                        <Select placeholder="Select a role">
+                            <Option value={1}>Admin</Option>
+                            <Option value={2}>Super Admin</Option>
+                        </Select>
+                    </Form.Item>
+
+                    <Form.Item style={{ marginBottom: 0 }}>
                         <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
                             <Button onClick={() => setIsModalVisible(false)}>Cancel</Button>
                             <Button type="primary" htmlType="submit">
-                                Add User
+                                Register User
                             </Button>
                         </Space>
                     </Form.Item>

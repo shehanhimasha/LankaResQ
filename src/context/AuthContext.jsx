@@ -15,7 +15,6 @@ const normalizeUserRecord = (user) => {
         name: fullName || user.name || user.email || 'Unknown',
         email: user.email || '',
         role: typeof user.role === 'object' ? user.role.name : user.role || 'User',
-        status: user.status || (user.isSafe ? 'Active' : 'Inactive') || 'Active',
         contact: user.mobileNumber || user.contact || '',
         joinedDate: user.joinedDate || (user.createdOn ? new Date(user.createdOn).toISOString().split('T')[0] : ''),
     };
@@ -25,18 +24,28 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [usersDb, setUsersDb] = useState([]);
+    const [totalUsers, setTotalUsers] = useState(0);
 
-    // Fetch users exclusively from backend API — no localStorage fallback
-    const fetchRemoteUsers = async () => {
+    // Fetch users exclusively from backend API
+    const fetchRemoteUsers = async (params = {}) => {
         try {
-            const response = await api.get('/users', { params: { Page: 1, PageSize: 100 } });
-            const items = response.data?.items ?? response.data ?? [];
+            const { Query, RoleId, Page = 1, PageSize = 10 } = params;
+            // Use the full URL as requested to ensure direct connection to the backend
+            const response = await api.get('/users', {
+                params: { Query, RoleId, Page, PageSize }
+            });
+
+            const data = response.data;
+            // Handle both { items: [] } and [] formats
+            const items = data?.items ?? (Array.isArray(data) ? data : []);
+
             if (Array.isArray(items)) {
                 const remoteUsers = items.map(normalizeUserRecord);
                 setUsersDb(remoteUsers);
-                return true;
+                setTotalUsers(data?.total ?? items.length);
+                return { items: remoteUsers, total: data?.total ?? items.length };
             }
-            console.error('GET /users returned unexpected data format');
+            console.error('GET /users returned unexpected data format', data);
             return false;
         } catch (error) {
             console.error('Failed to fetch users from backend:', error);
@@ -45,8 +54,8 @@ export const AuthProvider = ({ children }) => {
     };
 
     // Expose a refresh function to re-fetch users from backend on demand
-    const refreshUsers = async () => {
-        return await fetchRemoteUsers();
+    const refreshUsers = async (params) => {
+        return await fetchRemoteUsers(params);
     };
 
     useEffect(() => {
@@ -91,13 +100,6 @@ export const AuthProvider = ({ children }) => {
 
             if (!isAllowed) {
                 throw new Error('Access denied. Only Admin and Super Admin users can log in.');
-            }
-
-            // Check if user is active
-            const status = (userData.status || (userData.isSafe ? 'Active' : 'Inactive') || 'Active').toLowerCase();
-            const inactiveStates = ['inactive', 'deactivate', 'deactivated'];
-            if (inactiveStates.includes(status)) {
-                throw new Error('Account deactivated. Please activate the account.');
             }
 
             // Persist session (including token) in localStorage
@@ -161,6 +163,26 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // Register a new user with full details and profile picture (multipart/form-data)
+    const registerUser = async (formData) => {
+        try {
+            await api.post('/users/register', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            await fetchRemoteUsers();
+            return true;
+        } catch (error) {
+            console.error('Failed to register user:', error);
+            throw new Error(
+                error.response?.data?.message ||
+                error.response?.data?.title ||
+                'Failed to register user'
+            );
+        }
+    };
+
     // Update a user via backend API
     const updateUserDb = async (id, updatedData) => {
         try {
@@ -174,25 +196,6 @@ export const AuthProvider = ({ children }) => {
                 error.response?.data?.title ||
                 'Failed to update user'
             );
-        }
-    };
-
-    // Optimistic status toggle — updates local state instantly, then syncs with backend
-    // Uses email as the unique lookup key for local state (IDs may be duplicated/undefined)
-    const updateUserStatus = async (id, email, newStatus, isSafe) => {
-        // 1. Optimistic local update using email as unique key
-        setUsersDb(prev => prev.map(u => u.email === email ? { ...u, status: newStatus, isSafe } : u));
-
-        // 2. Sync with backend in background
-        try {
-            await api.put(`/users/${id}`, { status: newStatus, isSafe });
-            // Re-fetch to ensure consistency
-            await fetchRemoteUsers();
-        } catch (error) {
-            // Revert on failure
-            console.error('Failed to update user status:', error);
-            await fetchRemoteUsers();
-            throw error;
         }
     };
 
@@ -218,8 +221,8 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, updateProfile, usersDb, addUser, updateUserDb, updateUserStatus, deleteUserDb, refreshUsers, loading }}>
-            {!loading && children}
+        <AuthContext.Provider value={{ user, login, logout, updateProfile, usersDb, totalUsers, addUser, registerUser, updateUserDb, deleteUserDb, refreshUsers, loading }}>
+            {children}
         </AuthContext.Provider>
     );
 };

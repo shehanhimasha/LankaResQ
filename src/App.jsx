@@ -8,6 +8,7 @@ import { UserProvider } from './context/UserContext';
 import { ShelterProvider } from './context/ShelterContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { DangerZoneProvider } from './context/DangerZoneContext';
+import { AlertProvider } from './context/AlertContext';
 import AppRoutes from './routes/AppRoutes';
 import './App.css';
 
@@ -27,17 +28,19 @@ const AppContent = () => {
     >
       <BrowserRouter>
         <AuthProvider>
-          <RequestProvider>
-            <UserProvider>
-              <ShelterProvider>
-                <NotificationProvider>
-                  <DangerZoneProvider>
-                    <AppRoutes />
-                  </DangerZoneProvider>
-                </NotificationProvider>
-              </ShelterProvider>
-            </UserProvider>
-          </RequestProvider>
+          <AlertProvider>
+            <RequestProvider>
+              <UserProvider>
+                <ShelterProvider>
+                  <NotificationProvider>
+                    <DangerZoneProvider>
+                      <AppRoutes />
+                    </DangerZoneProvider>
+                  </NotificationProvider>
+                </ShelterProvider>
+              </UserProvider>
+            </RequestProvider>
+          </AlertProvider>
         </AuthProvider>
       </BrowserRouter>
     </ConfigProvider>
