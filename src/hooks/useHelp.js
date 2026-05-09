@@ -1,15 +1,20 @@
 import { useState } from 'react';
 import { Form, message, Modal } from 'antd';
 import { useRequest } from '../context/RequestContext';
+import { useAuth } from '../context/AuthContext';
 
 const useHelp = () => {
     const { requests, updateRequestStatus, updateRequest, deleteRequest, addRequest } = useRequest();
+    const { user } = useAuth();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [feedbackText, setFeedbackText] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [form] = Form.useForm();
+
+    const currentUserName = user?.name || 'System Admin';
+    const currentUserEmail = user?.email || 'admin@lankaresq.com';
 
     const handleCreateSubmit = (values) => {
         const newRequest = {
@@ -21,6 +26,12 @@ const useHelp = () => {
             contactNumber: values.contactNo,
             location: values.location,
             reminder: 0,
+            logs: [{
+                action: 'Request Created',
+                time: new Date().toLocaleString(),
+                adminName: currentUserName,
+                adminEmail: currentUserEmail // Added for dynamic name lookup
+            }]
         };
         addRequest(newRequest);
         message.success('New help request created manually!');
@@ -43,7 +54,8 @@ const useHelp = () => {
         updatedRecord.logs.push({
             action: 'Viewed Request',
             time: new Date().toLocaleString(),
-            adminName: 'System Admin'
+            adminName: currentUserName,
+            adminEmail: currentUserEmail // Added
         });
 
         updateRequest(updatedRecord);
@@ -84,7 +96,8 @@ const useHelp = () => {
             updatedRecord.logs.push({
                 action: isFirstSubmit ? 'Submitted Feedback' : 'Updated Feedback',
                 time: new Date().toLocaleString(),
-                adminName: 'System Admin'
+                adminName: currentUserName,
+                adminEmail: currentUserEmail // Added
             });
         }
 
@@ -102,7 +115,20 @@ const useHelp = () => {
     };
 
     const handleComplete = (record) => {
-        updateRequestStatus(record.id, 'success');
+        const updatedRecord = {
+            ...record,
+            status: 'success',
+            logs: [
+                ...(record.logs || []),
+                {
+                    action: 'Marked as Completed',
+                    time: new Date().toLocaleString(),
+                    adminName: currentUserName,
+                    adminEmail: currentUserEmail // Added
+                }
+            ]
+        };
+        updateRequest(updatedRecord);
         message.success(`Request ${record.id} marked as completed.`);
     };
 

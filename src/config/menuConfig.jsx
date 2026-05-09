@@ -38,7 +38,7 @@ export const menuItems = [
     },
     {
         key: '/danger-zone',
-        icon: <WarningOutlined style={{ color: '#ff4d4f' }} />,
+        icon: <WarningOutlined />,
         label: 'Danger Zone',
     },
     {

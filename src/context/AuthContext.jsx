@@ -1,122 +1,215 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
+import api from '../services/api';
 
 // Context to hold the authentication state
 const AuthContext = createContext(null);
+
+const normalizeUserRecord = (user) => {
+    const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+    // Support various ID field names from backend
+    const userId = user.id || user._id || user.userId || user.Id;
+    
+    return {
+        ...user,
+        id: userId,
+        name: fullName || user.name || user.email || 'Unknown',
+        email: user.email || '',
+        role: typeof user.role === 'object' ? user.role.name : user.role || 'User',
+        status: user.status || (user.isSafe ? 'Active' : 'Inactive') || 'Active',
+        contact: user.mobileNumber || user.contact || '',
+        joinedDate: user.joinedDate || (user.createdOn ? new Date(user.createdOn).toISOString().split('T')[0] : ''),
+    };
+};
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [usersDb, setUsersDb] = useState([]);
 
-    useEffect(() => {
-        const storedUsers = localStorage.getItem('usersDb');
-        if (storedUsers) {
-            const parsed = JSON.parse(storedUsers).map(u => ({
-                ...u,
-                status: u.status || 'Active',
-                role: u.role || 'User',
-                joinedDate: u.joinedDate || new Date().toISOString().split('T')[0]
-            }));
-            setUsersDb(parsed);
-            localStorage.setItem('usersDb', JSON.stringify(parsed));
-        } else {
-            const defaultUsers = [
-                {
-                    id: 1,
-                    name: 'Admin User',
-                    email: 'admin@gmail.com',
-                    role: 'Admin',
-                    password: '12345',
-                    status: 'Active',
-                    contact: '0771234567',
-                    joinedDate: '2025-01-01',
-                },
-                {
-                    id: 2,
-                    name: 'Sarah Connor',
-                    email: 'sarah@example.com',
-                    role: 'Co-Admin',
-                    password: 'password123',
-                    status: 'Active',
-                    joinedDate: '2025-02-15',
-                }
-            ];
-            setUsersDb(defaultUsers);
-            localStorage.setItem('usersDb', JSON.stringify(defaultUsers));
+    // Fetch users exclusively from backend API — no localStorage fallback
+    const fetchRemoteUsers = async () => {
+        try {
+            const response = await api.get('/users', { params: { Page: 1, PageSize: 100 } });
+            const items = response.data?.items ?? response.data ?? [];
+            if (Array.isArray(items)) {
+                const remoteUsers = items.map(normalizeUserRecord);
+                setUsersDb(remoteUsers);
+                return true;
+            }
+            console.error('GET /users returned unexpected data format');
+            return false;
+        } catch (error) {
+            console.error('Failed to fetch users from backend:', error);
+            return false;
         }
+    };
 
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-            setUser(JSON.parse(storedUser));
-        }
-        setLoading(false);
+    // Expose a refresh function to re-fetch users from backend on demand
+    const refreshUsers = async () => {
+        return await fetchRemoteUsers();
+    };
+
+    useEffect(() => {
+        const init = async () => {
+            // Restore logged-in user session from localStorage
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+                setUser(JSON.parse(storedUser));
+            }
+            // Fetch users from backend (will silently fail if not authenticated yet)
+            await fetchRemoteUsers();
+            setLoading(false);
+        };
+
+        init();
     }, []);
 
+    // Authenticate against backend API
     const login = async (email, password) => {
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                const foundUser = usersDb.find(u => u.email === email && u.password === password);
-                if (foundUser) {
-                    const userData = { ...foundUser };
-                    delete userData.password;
+        try {
+            const response = await api.post('/auth/login', {
+                userName: email,
+                password: password,
+            });
 
-                    setUser(userData);
-                    localStorage.setItem('user', JSON.stringify(userData));
-                    resolve(userData);
-                } else {
-                    reject(new Error('Invalid email or password'));
-                }
-            }, 500);
-        });
+            const userData = response.data;
+
+            // Check if user has an allowed role for the admin panel
+            // LoginResponse returns roleId (int). Common mapping: 1=Admin, 2=SuperAdmin, 3=Co-Admin, 4=User
+            // Also handle cases where role might be a string or object from other endpoints
+            const allowedRoleIds = [1, 2, 3]; // Admin, Super Admin, Co-Admin
+            const allowedRoleNames = ['admin', 'super admin', 'co-admin'];
+
+            let isAllowed = false;
+            if (userData.roleId != null) {
+                isAllowed = allowedRoleIds.includes(userData.roleId);
+            }
+            if (!isAllowed && userData.role) {
+                const roleName = typeof userData.role === 'object' ? userData.role.name : userData.role;
+                isAllowed = allowedRoleNames.includes((roleName || '').toLowerCase());
+            }
+
+            if (!isAllowed) {
+                throw new Error('Access denied. Only Admin and Super Admin users can log in.');
+            }
+
+            // Check if user is active
+            const status = (userData.status || (userData.isSafe ? 'Active' : 'Inactive') || 'Active').toLowerCase();
+            const inactiveStates = ['inactive', 'deactivate', 'deactivated'];
+            if (inactiveStates.includes(status)) {
+                throw new Error('Account deactivated. Please activate the account.');
+            }
+
+            // Persist session (including token) in localStorage
+            localStorage.setItem('user', JSON.stringify(userData));
+            setUser(userData);
+
+            // Now that we're authenticated, fetch the users list
+            await fetchRemoteUsers();
+
+            return userData;
+        } catch (error) {
+            // Re-throw custom errors (e.g. role check) without overwriting the message
+            if (!error.response) throw error;
+            const message =
+                error.response?.data?.message ||
+                error.response?.data?.title ||
+                error.response?.data ||
+                'Invalid email or password';
+            throw new Error(typeof message === 'string' ? message : 'Login failed');
+        }
     };
 
     const updateProfile = async (updatedData) => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const updatedUsersDb = usersDb.map(u => {
-                    if (u.email === user.email) {
-                        return { ...u, ...updatedData };
-                    }
-                    return u;
-                });
-                
-                setUsersDb(updatedUsersDb);
-                localStorage.setItem('usersDb', JSON.stringify(updatedUsersDb));
+        try {
+            // If user has an id, update via backend
+            if (user?.id) {
+                await api.put(`/users/${user.id}`, updatedData);
+            }
+            // Update local session data
+            const sessionData = { ...user, ...updatedData };
+            setUser(sessionData);
+            localStorage.setItem('user', JSON.stringify(sessionData));
 
-                const sessionData = { ...user, ...updatedData };
-                delete sessionData.password;
-                
-                setUser(sessionData);
-                localStorage.setItem('user', JSON.stringify(sessionData));
+            // Refresh the users list from backend
+            await fetchRemoteUsers();
 
-                resolve(sessionData);
-            }, 500);
-        });
+            return sessionData;
+        } catch (error) {
+            console.error('Failed to update profile:', error);
+            throw new Error(
+                error.response?.data?.message ||
+                error.response?.data?.title ||
+                'Failed to update profile'
+            );
+        }
     };
 
-    const addUser = (newUserData) => {
-        const newUser = { 
-            ...newUserData, 
-            id: usersDb.length ? Math.max(...usersDb.map(u => u.id)) + 1 : 1,
-            status: 'Active',
-            joinedDate: new Date().toISOString().split('T')[0]
-        };
-        const updatedUsers = [...usersDb, newUser];
-        setUsersDb(updatedUsers);
-        localStorage.setItem('usersDb', JSON.stringify(updatedUsers));
-        return newUser;
+    // Create a new user via backend API
+    const addUser = async (newUserData) => {
+        try {
+            await api.post('/users', newUserData);
+            await fetchRemoteUsers();
+            return true;
+        } catch (error) {
+            console.error('Failed to add user:', error);
+            throw new Error(
+                error.response?.data?.message ||
+                error.response?.data?.title ||
+                'Failed to add user'
+            );
+        }
     };
 
-    const updateUserDb = (id, updatedData) => {
-        const updatedUsers = usersDb.map(u => u.id === id ? { ...u, ...updatedData } : u);
-        setUsersDb(updatedUsers);
-        localStorage.setItem('usersDb', JSON.stringify(updatedUsers));
+    // Update a user via backend API
+    const updateUserDb = async (id, updatedData) => {
+        try {
+            await api.put(`/users/${id}`, updatedData);
+            await fetchRemoteUsers();
+            return true;
+        } catch (error) {
+            console.error('Failed to update user:', error);
+            throw new Error(
+                error.response?.data?.message ||
+                error.response?.data?.title ||
+                'Failed to update user'
+            );
+        }
     };
 
-    const deleteUserDb = (id) => {
-        const updatedUsers = usersDb.filter(u => u.id !== id);
-        setUsersDb(updatedUsers);
-        localStorage.setItem('usersDb', JSON.stringify(updatedUsers));
+    // Optimistic status toggle — updates local state instantly, then syncs with backend
+    // Uses email as the unique lookup key for local state (IDs may be duplicated/undefined)
+    const updateUserStatus = async (id, email, newStatus, isSafe) => {
+        // 1. Optimistic local update using email as unique key
+        setUsersDb(prev => prev.map(u => u.email === email ? { ...u, status: newStatus, isSafe } : u));
+
+        // 2. Sync with backend in background
+        try {
+            await api.put(`/users/${id}`, { status: newStatus, isSafe });
+            // Re-fetch to ensure consistency
+            await fetchRemoteUsers();
+        } catch (error) {
+            // Revert on failure
+            console.error('Failed to update user status:', error);
+            await fetchRemoteUsers();
+            throw error;
+        }
+    };
+
+    // Delete a user via backend API
+    const deleteUserDb = async (id) => {
+        try {
+            await api.delete(`/users/${id}`);
+            await fetchRemoteUsers();
+            return true;
+        } catch (error) {
+            console.error('Failed to delete user:', error);
+            throw new Error(
+                error.response?.data?.message ||
+                error.response?.data?.title ||
+                'Failed to delete user'
+            );
+        }
     };
 
     const logout = () => {
@@ -125,7 +218,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, updateProfile, usersDb, addUser, updateUserDb, deleteUserDb, loading }}>
+        <AuthContext.Provider value={{ user, login, logout, updateProfile, usersDb, addUser, updateUserDb, updateUserStatus, deleteUserDb, refreshUsers, loading }}>
             {!loading && children}
         </AuthContext.Provider>
     );

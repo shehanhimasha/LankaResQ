@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card, InputNumber, Tooltip } from 'antd';
-import { PlusOutlined, DeleteOutlined, HomeOutlined, SearchOutlined, EditOutlined } from '@ant-design/icons';
+import React, { useState, useRef, useEffect } from 'react';
+import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card, InputNumber, Tooltip, AutoComplete, Row, Col, Switch, Descriptions } from 'antd';
+import { PlusOutlined, DeleteOutlined, HomeOutlined, SearchOutlined, EditOutlined, EyeOutlined } from '@ant-design/icons';
+import axios from 'axios';
 import { useShelter } from '../context/ShelterContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -9,24 +10,75 @@ const { Option } = Select;
 
 const Shelters = () => {
     // Get shelter data and management functions from ShelterContext
-    const { shelters, addShelter, updateShelterStatus, deleteShelter, updateShelter } = useShelter();
+    const { shelters, loading, fetchShelters, addShelter, updateShelterStatus, deleteShelter, updateShelter } = useShelter();
     const { user: currentUser } = useAuth();
+
+    useEffect(() => {
+        fetchShelters();
+    }, []);
 
     // UI state for Modal visibility and Search functionality
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
     const [editingShelter, setEditingShelter] = useState(null);
+    const [isViewModalVisible, setIsViewModalVisible] = useState(false);
+    const [viewingShelter, setViewingShelter] = useState(null);
     const [searchText, setSearchText] = useState('');
 
     const [form] = Form.useForm();
     const [editForm] = Form.useForm();
+    // Autocomplete state
+    const [options, setOptions] = useState([]);
+    const [searching, setSearching] = useState(false);
+    const searchTimeout = useRef(null);
+
+    const handleSearch = (value) => {
+        if (searchTimeout.current) clearTimeout(searchTimeout.current);
+        if (!value) {
+            setOptions([]);
+            return;
+        }
+        setSearching(true);
+        searchTimeout.current = setTimeout(async () => {
+            try {
+                // Using Photon API for better fuzzy search
+                const response = await axios.get(`https://photon.komoot.io/api/?q=${encodeURIComponent(value + ' Sri Lanka')}&limit=5`);
+                const newOptions = response.data.features.map(item => {
+                    const props = item.properties;
+                    const coords = item.geometry.coordinates; // [lon, lat]
+                    const label = [props.name, props.street, props.city, props.state].filter(Boolean).join(', ');
+                    return {
+                        value: label,
+                        label: label,
+                        lat: coords[1],
+                        lon: coords[0]
+                    };
+                });
+                setOptions(newOptions.filter(opt => opt.label)); // filter out empty labels
+            } catch (error) {
+                console.error("Error fetching locations:", error);
+            } finally {
+                setSearching(false);
+            }
+        }, 800);
+    };
+
+    const handleSelect = (value, option, targetForm) => {
+        const lon = parseFloat(option.lon).toFixed(2);
+        const lat = parseFloat(option.lat).toFixed(2);
+        targetForm.setFieldsValue({
+            locationName: value,
+            location: `${lon}, ${lat}`
+        });
+    };
 
     // Handler to save a new shelter
-    const handleAddShelter = (values) => {
-        addShelter(values);
-        message.success('Shelter added successfully');
-        setIsModalVisible(false);
-        form.resetFields();
+    const handleAddShelter = async (values) => {
+        const success = await addShelter(values);
+        if (success) {
+            setIsModalVisible(false);
+            form.resetFields();
+        }
     };
 
     const handleEditClick = (record) => {
@@ -71,7 +123,7 @@ const Shelters = () => {
             key: 'id',
         },
         {
-            title: 'Name',
+            title: 'Shelter Name',
             dataIndex: 'name',
             key: 'name',
             filters: Array.from(new Set(shelters.map(s => s.name))).map(n => ({ text: n, value: n })),
@@ -79,104 +131,98 @@ const Shelters = () => {
             filterSearch: true,
         },
         {
-            title: 'Location',
-            dataIndex: 'location',
-            key: 'location',
-            filters: Array.from(new Set(shelters.map(s => s.location))).map(l => ({ text: l, value: l })),
-            onFilter: (value, record) => record.location === value,
-            filterSearch: true,
+            title: 'Location Name',
+            dataIndex: 'locationName',
+            key: 'locationName',
         },
         {
-            title: 'Contact Number',
-            dataIndex: 'contactNumber',
-            key: 'contactNumber',
-        },
-        {
-            title: 'Current Count',
-            dataIndex: 'currentCount',
-            key: 'currentCount',
-        },
-        {
-            title: 'Max Capacity',
-            dataIndex: 'maxCapacity',
-            key: 'maxCapacity',
+            title: 'Capacity',
+            key: 'capacity',
+            render: (_, record) => `${record.currentCount} / ${record.maxCount}`
         },
         {
             title: 'Status',
             dataIndex: 'status',
             key: 'status',
-            render: (status, record) => {
-                const isUser = currentUser?.role === 'User' || currentUser?.role === 'user';
+            render: (status) => {
+                const isActive = status === 'Activate' || status === 'Active' || status === 'Available';
                 return (
-                    <Select
-                        defaultValue={status}
-                        style={{ width: 140 }}
-                        onChange={(value) => updateShelterStatus(record.id, value)}
-                        disabled={isUser}
-                    >
-                        <Option value="Available"><Tag color="success">AVAILABLE</Tag></Option>
-                        <Option value="Full"><Tag color="warning">FULL</Tag></Option>
-                        <Option value="Not Available"><Tag color="error">NOT AVAILABLE</Tag></Option>
-                    </Select>
+                    <Tag color={isActive ? "success" : "error"}>
+                        {isActive ? "ACTIVATE" : "DEACTIVATE"}
+                    </Tag>
                 );
             },
         },
     ];
 
-    if (currentUser?.role !== 'User' && currentUser?.role !== 'user') {
-        columns.push({
-            title: 'Action',
-            key: 'action',
-            render: (_, record) => (
+    columns.push({
+        title: 'Action',
+        key: 'action',
+        render: (_, record) => {
+            const isActive = record.status === 'Activate' || record.status === 'Active' || record.status === 'Available';
+            const isAdmin = currentUser?.role !== 'User' && currentUser?.role !== 'user';
+            return (
                 <Space size="middle">
-                    <Tooltip title="Edit">
+                    <Tooltip title="View">
                         <Button
                             type="default"
-                            style={{ color: '#1890ff', borderColor: '#91d5ff', background: '#e6f7ff' }}
-                            icon={<EditOutlined />}
-                            onClick={() => handleEditClick(record)}
+                            style={{ color: '#52c41a', borderColor: '#b7eb8f', background: '#f6ffed' }}
+                            icon={<EyeOutlined />}
+                            onClick={() => {
+                                setViewingShelter(record);
+                                setIsViewModalVisible(true);
+                            }}
                         />
                     </Tooltip>
-                    <Tooltip title="Delete">
-                        <Button
-                            type="default"
-                            danger
-                            style={{ color: '#f5222d', borderColor: '#ffa39e', background: '#fff1f0' }}
-                            icon={<DeleteOutlined />}
-                            onClick={() => handleDelete(record.id)}
-                        />
-                    </Tooltip>
+                    {isAdmin && (
+                        <>
+                            <Tooltip title="Edit">
+                                <Button
+                                    type="default"
+                                    style={{ color: '#1890ff', borderColor: '#91d5ff', background: '#e6f7ff' }}
+                                    icon={<EditOutlined />}
+                                    onClick={() => handleEditClick(record)}
+                                />
+                            </Tooltip>
+                            <Tooltip title={isActive ? "Deactivate" : "Activate"}>
+                                <Switch
+                                    checked={isActive}
+                                    onChange={(checked) => updateShelterStatus(record.id, checked ? 'Activate' : 'Deactivate')}
+                                />
+                            </Tooltip>
+                        </>
+                    )}
                 </Space>
-            ),
-        });
-    }
+            );
+        },
+    });
 
     return (
-        <div>
+        <div style={{ padding: '24px', background: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             {/* --- Header Section --- */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <Title level={2} style={{ margin: 0 }}>Shelter Management</Title>
-                    {/* Search Input */}
-                    <Input
+                <Title level={3} style={{ margin: 0 }}>Shelter Management</Title>
+                
+                <Space size="middle">
+                    <Input.Search
                         placeholder="Search shelters..."
-                        prefix={<SearchOutlined />}
+                        allowClear
                         value={searchText}
                         onChange={e => setSearchText(e.target.value)}
-                        style={{ width: 250 }}
+                        style={{ width: 350 }}
                     />
-                </div>
-                {/* Add Shelter Button */}
-                {currentUser?.role !== 'User' && currentUser?.role !== 'user' && (
-                    <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalVisible(true)} size="large">
-                        Add New Shelter
-                    </Button>
-                )}
+                    {/* Add Shelter Button */}
+                    {currentUser?.role !== 'User' && currentUser?.role !== 'user' && (
+                        <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalVisible(true)}>
+                            New Shelter
+                        </Button>
+                    )}
+                </Space>
             </div>
 
             {/* --- Shelters Table --- */}
             <Card bordered={false} style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
-                <Table columns={columns} dataSource={filteredShelters} rowKey="id" />
+                <Table columns={columns} dataSource={filteredShelters} rowKey="id" loading={loading} />
             </Card>
 
             {/* --- Add New Shelter Modal --- */}
@@ -185,69 +231,90 @@ const Shelters = () => {
                 open={isModalVisible}
                 onCancel={() => setIsModalVisible(false)}
                 footer={null}
+                width={800}
             >
                 <Form
                     form={form}
                     layout="vertical"
                     onFinish={handleAddShelter}
                 >
-                    <Form.Item
-                        name="name"
-                        label="Shelter Name"
-                        rules={[{ required: true, message: 'Please enter shelter name' }]}
-                    >
-                        <Input placeholder="City Community Center" prefix={<HomeOutlined />} />
-                    </Form.Item>
+                    <Row gutter={16}>
+                        <Col span={24}>
+                            <Form.Item
+                                name="name"
+                                label="Shelter Name"
+                                rules={[{ required: true, message: 'Please enter shelter name' }]}
+                            >
+                                <Input placeholder="City Community Center" prefix={<HomeOutlined />} />
+                            </Form.Item>
+                        </Col>
+                    </Row>
 
-                    <Form.Item
-                        name="location"
-                        label="Location"
-                        rules={[{ required: true, message: 'Please enter location' }]}
-                    >
-                        <Input placeholder="Colombo 07" />
-                    </Form.Item>
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item
+                                name="locationName"
+                                label="Location Name"
+                                rules={[{ required: true, message: 'Please enter location name' }]}
+                            >
+                                <AutoComplete
+                                    options={options}
+                                    onSearch={handleSearch}
+                                    onSelect={(val, opt) => handleSelect(val, opt, form)}
+                                    placeholder="Search location (e.g. Colombo 07)"
+                                    notFoundContent={searching ? "Searching..." : "No location found"}
+                                />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item
+                                name="location"
+                                label="Location"
+                                rules={[{ required: true, message: 'Please enter location' }]}
+                            >
+                                <Input placeholder="Longitude, Latitude" />
+                            </Form.Item>
+                        </Col>
+                    </Row>
 
-                    <Form.Item
-                        name="contactNumber"
-                        label="Contact Number"
-                        rules={[{ required: true, message: 'Please enter contact number' }]}
-                    >
-                        <Input placeholder="0112345678" />
-                    </Form.Item>
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item
+                                name="currentCount"
+                                label="Current Count"
+                                initialValue={0}
+                                dependencies={['maxCount']}
+                                rules={[
+                                    { required: true, message: 'Please enter current occupant count' },
+                                    ({ getFieldValue }) => ({
+                                        validator(_, value) {
+                                            const max = getFieldValue('maxCount');
+                                            if (value === undefined || max === undefined || value <= max) {
+                                                return Promise.resolve();
+                                            }
+                                            return Promise.reject(new Error('Current count cannot exceed maximum count'));
+                                        },
+                                    }),
+                                ]}
+                            >
+                                <InputNumber min={0} style={{ width: '100%' }} placeholder="0" />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item
+                                name="maxCount"
+                                label="Maximum Count"
+                                rules={[{ required: true, message: 'Please enter max count' }]}
+                            >
+                                <InputNumber min={1} style={{ width: '100%' }} placeholder="150" />
+                            </Form.Item>
+                        </Col>
+                    </Row>
 
-                    <Form.Item
-                        name="currentCount"
-                        label="Current Count"
-                        initialValue={0}
-                        rules={[{ required: true, message: 'Please enter current occupant count' }]}
-                    >
-                        <InputNumber min={0} style={{ width: '100%' }} placeholder="0" />
-                    </Form.Item>
-                    <Form.Item
-                        name="maxCapacity"
-                        label="Maximum Capacity"
-                        rules={[{ required: true, message: 'Please enter max capacity' }]}
-                    >
-                        <InputNumber min={1} style={{ width: '100%' }} placeholder="150" />
-                    </Form.Item>
-
-                    <Form.Item
-                        name="status"
-                        label="Initial Status"
-                        initialValue="Available"
-                        rules={[{ required: true, message: 'Please select status' }]}
-                    >
-                        <Select>
-                            <Option value="Available">Available</Option>
-                            <Option value="Full">Full</Option>
-                            <Option value="Not Available">Not Available</Option>
-                        </Select>
-                    </Form.Item>
-
-                    <Form.Item>
+                    <Form.Item style={{ marginBottom: 0 }}>
                         <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
                             <Button onClick={() => setIsModalVisible(false)}>Cancel</Button>
-                            <Button type="primary" htmlType="submit">
+                            <Button type="primary" htmlType="submit" loading={loading}>
                                 Add Shelter
                             </Button>
                         </Space>
@@ -264,34 +331,112 @@ const Shelters = () => {
                     setEditingShelter(null);
                 }}
                 footer={null}
+                width={800}
             >
                 <Form
                     form={editForm}
                     layout="vertical"
                     onFinish={handleEditSubmit}
                 >
-                    <Form.Item name="name" label="Shelter Name" rules={[{ required: true, message: 'Please enter shelter name' }]}>
-                        <Input prefix={<HomeOutlined />} />
-                    </Form.Item>
-                    <Form.Item name="location" label="Location" rules={[{ required: true, message: 'Please enter location' }]}>
-                        <Input />
-                    </Form.Item>
-                    <Form.Item name="contactNumber" label="Contact Number" rules={[{ required: true, message: 'Please enter contact number' }]}>
-                        <Input />
-                    </Form.Item>
-                    <Form.Item name="currentCount" label="Current Count" rules={[{ required: true, message: 'Please enter current occupant count' }]}>
-                        <InputNumber min={0} style={{ width: '100%' }} />
-                    </Form.Item>
-                    <Form.Item name="maxCapacity" label="Maximum Capacity" rules={[{ required: true, message: 'Please enter max capacity' }]}>
-                        <InputNumber min={1} style={{ width: '100%' }} />
-                    </Form.Item>
-                    <Form.Item>
+                    <Row gutter={16}>
+                        <Col span={24}>
+                            <Form.Item name="name" label="Shelter Name" rules={[{ required: true, message: 'Please enter shelter name' }]}>
+                                <Input prefix={<HomeOutlined />} />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item name="locationName" label="Location Name" rules={[{ required: true, message: 'Please enter location name' }]}>
+                                <AutoComplete
+                                    options={options}
+                                    onSearch={handleSearch}
+                                    onSelect={(val, opt) => handleSelect(val, opt, editForm)}
+                                    placeholder="Search location..."
+                                    notFoundContent={searching ? "Searching..." : "No location found"}
+                                />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="location" label="Location" rules={[{ required: true, message: 'Please enter location' }]}>
+                                <Input placeholder="Longitude, Latitude" />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item 
+                                name="currentCount" 
+                                label="Current Count" 
+                                dependencies={['maxCount']}
+                                rules={[
+                                    { required: true, message: 'Please enter current occupant count' },
+                                    ({ getFieldValue }) => ({
+                                        validator(_, value) {
+                                            const max = getFieldValue('maxCount');
+                                            if (value === undefined || max === undefined || value <= max) {
+                                                return Promise.resolve();
+                                            }
+                                            return Promise.reject(new Error('Current count cannot exceed maximum count'));
+                                        },
+                                    }),
+                                ]}
+                            >
+                                <InputNumber min={0} style={{ width: '100%' }} />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="maxCount" label="Maximum Count" rules={[{ required: true, message: 'Please enter max count' }]}>
+                                <InputNumber min={1} style={{ width: '100%' }} />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+
+                    <Form.Item style={{ marginBottom: 0 }}>
                         <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
                             <Button onClick={() => setIsEditModalVisible(false)}>Cancel</Button>
                             <Button type="primary" htmlType="submit">Save Changes</Button>
                         </Space>
                     </Form.Item>
                 </Form>
+            </Modal>
+            {/* --- View Shelter Details Modal --- */}
+            <Modal
+                title="Shelter Details"
+                open={isViewModalVisible}
+                onCancel={() => {
+                    setIsViewModalVisible(false);
+                    setViewingShelter(null);
+                }}
+                footer={[
+                    <Button key="close" onClick={() => setIsViewModalVisible(false)}>
+                        Close
+                    </Button>
+                ]}
+                width={700}
+            >
+                {viewingShelter && (
+                    <Descriptions bordered column={1}>
+                        <Descriptions.Item label="ID">{viewingShelter.id}</Descriptions.Item>
+                        <Descriptions.Item label="Shelter Name">{viewingShelter.name}</Descriptions.Item>
+                        <Descriptions.Item label="Location Name">{viewingShelter.locationName}</Descriptions.Item>
+                        <Descriptions.Item label="Coordinates (Lon, Lat)">{viewingShelter.location}</Descriptions.Item>
+                        <Descriptions.Item label="Current Occupants">{viewingShelter.currentCount}</Descriptions.Item>
+                        <Descriptions.Item label="Maximum Capacity">{viewingShelter.maxCount}</Descriptions.Item>
+                        <Descriptions.Item label="Status">
+                            <Tag color={(viewingShelter.status === 'Activate' || viewingShelter.status === 'Active' || viewingShelter.status === 'Available') ? "success" : "error"}>
+                                {(viewingShelter.status === 'Activate' || viewingShelter.status === 'Active' || viewingShelter.status === 'Available') ? "ACTIVATE" : "DEACTIVATE"}
+                            </Tag>
+                        </Descriptions.Item>
+                        {viewingShelter.createdOn && (
+                            <Descriptions.Item label="Created Date">
+                                {new Date(viewingShelter.createdOn).toISOString().split('T')[0]}
+                            </Descriptions.Item>
+                        )}
+                    </Descriptions>
+                )}
             </Modal>
         </div>
     );

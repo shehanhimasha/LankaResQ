@@ -5,10 +5,10 @@ const UserContext = createContext(null);
 
 export const UserProvider = ({ children }) => {
     // Act as a pass-through adapter mapping directly to the unified Auth database
-    const { usersDb: users, addUser, updateUserDb: updateUser, deleteUserDb: deleteUser } = useAuth();
+    const { usersDb: users, addUser, updateUserDb: updateUser, updateUserStatus, deleteUserDb: deleteUser, refreshUsers } = useAuth();
 
     return (
-        <UserContext.Provider value={{ users, addUser, updateUser, deleteUser }}>
+        <UserContext.Provider value={{ users, addUser, updateUser, updateUserStatus, deleteUser, refreshUsers }}>
             {children}
         </UserContext.Provider>
     );

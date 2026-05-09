@@ -15,11 +15,14 @@ const Sidebar = ({ collapsed, setCollapsed, location, handleMenuClick }) => {
             onBreakpoint={(broken) => {
                 if (broken) setCollapsed(true);
             }}
+            style={{
+                background: '#D32F2F',
+            }}
         >
             <div className="demo-logo-vertical" style={{
                 height: 64,
                 margin: 0,
-                background: 'rgba(255, 255, 255, 0)',
+                background: 'transparent',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: collapsed ? 'center' : 'flex-start',
@@ -36,6 +39,9 @@ const Sidebar = ({ collapsed, setCollapsed, location, handleMenuClick }) => {
                 selectedKeys={[location.pathname]}
                 items={menuItems}
                 onClick={handleMenuClick}
+                style={{
+                    background: 'transparent',
+                }}
             />
         </Sider>
     );
