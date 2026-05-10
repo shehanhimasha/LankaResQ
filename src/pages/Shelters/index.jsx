@@ -178,26 +178,12 @@ const Shelters = () => {
                 );
             }
         },
-        {
-            title: 'Status',
-            dataIndex: 'status',
-            key: 'status',
-            render: (status) => {
-                const isActive = status === 'Activate' || status === 'Active' || status === 'Available';
-                return (
-                    <Tag color={isActive ? "success" : "error"}>
-                        {isActive ? "ACTIVE" : "DEACTIVE"}
-                    </Tag>
-                );
-            },
-        },
     ];
 
     columns.push({
         title: 'Action',
         key: 'action',
         render: (_, record) => {
-            const isActive = record.status === 'Activate' || record.status === 'Active' || record.status === 'Available';
             const isAdmin = currentUser?.role !== 'User' && currentUser?.role !== 'user';
             return (
                 <Space size="small">
@@ -222,13 +208,6 @@ const Shelters = () => {
                                     style={{ color: '#1890ff', borderColor: '#91d5ff', background: '#e6f7ff' }}
                                     icon={<EditOutlined />}
                                     onClick={() => handleEditClick(record)}
-                                />
-                            </Tooltip>
-                            <Tooltip title={isActive ? "Deactivate" : "Activate"}>
-                                <Switch
-                                    size="small"
-                                    checked={isActive}
-                                    onChange={(checked) => updateShelterStatus(record.id, checked ? 'Activate' : 'Deactivate')}
                                 />
                             </Tooltip>
                         </>
@@ -479,11 +458,7 @@ const Shelters = () => {
                         <Descriptions.Item label="Coordinates (Lat, Lon)">{viewingShelter.location}</Descriptions.Item>
                         <Descriptions.Item label="Current Occupants">{viewingShelter.currentCount}</Descriptions.Item>
                         <Descriptions.Item label="Maximum Capacity">{viewingShelter.maxCount}</Descriptions.Item>
-                        <Descriptions.Item label="Status">
-                            <Tag color={(viewingShelter.status === 'Activate' || viewingShelter.status === 'Active' || viewingShelter.status === 'Available') ? "success" : "error"}>
-                                {(viewingShelter.status === 'Activate' || viewingShelter.status === 'Active' || viewingShelter.status === 'Available') ? "ACTIVE" : "DEACTIVE"}
-                            </Tag>
-                        </Descriptions.Item>
+
                         {viewingShelter.createdOn && (
                             <Descriptions.Item label="Created Date">
                                 {new Date(viewingShelter.createdOn).toISOString().split('T')[0]}
