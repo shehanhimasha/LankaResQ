@@ -61,19 +61,20 @@ const Alerts = () => {
             title: 'Alert ID',
             dataIndex: 'alert_id',
             key: 'alert_id',
-            width: 120,
+            width: 180,
             render: (id) => <Text code>{id}</Text>
         },
         {
             title: 'Title',
             dataIndex: 'title',
             key: 'title',
-            ellipsis: true,
+            width: 200,
         },
         {
             title: 'Severity',
             dataIndex: 'severity_level',
             key: 'severity_level',
+            width: 100,
             render: (level) => {
                 const upperLevel = level?.toUpperCase() || 'UNKNOWN';
                 let color = 'default';
@@ -89,12 +90,14 @@ const Alerts = () => {
             title: 'Event Type',
             dataIndex: 'event_type',
             key: 'event_type',
+            width: 120,
             render: (type) => <Tag icon={<InfoCircleOutlined />} color="cyan">{type}</Tag>
         },
         {
             title: 'Confidence',
             dataIndex: 'confidence',
             key: 'confidence',
+            width: 80,
             render: (val) => <Text strong>{Math.round((val || 0) * 100)}%</Text>
         },
         {
@@ -250,12 +253,12 @@ const Alerts = () => {
                     onFinish={handleEditSubmit}
                 >
                     <Form.Item name="title" label="Title">
-                        <Input />
+                        <TextArea disabled autoSize={{ minRows: 1, maxRows: 3 }} />
                     </Form.Item>
                     <Row gutter={16}>
                         <Col span={12}>
                             <Form.Item name="severity_level" label="Severity">
-                                <Select>
+                                <Select disabled>
                                     <Option value="CRITICAL">Critical</Option>
                                     <Option value="HIGH">High</Option>
                                     <Option value="MEDIUM">Medium</Option>
@@ -266,31 +269,31 @@ const Alerts = () => {
                         </Col>
                         <Col span={12}>
                             <Form.Item name="event_type" label="Event Type">
-                                <Input />
+                                <Input disabled />
                             </Form.Item>
                         </Col>
                     </Row>
                     <Row gutter={16}>
                         <Col span={12}>
                             <Form.Item name="location_district" label="District">
-                                <Input />
+                                <Input disabled />
                             </Form.Item>
                         </Col>
                         <Col span={12}>
                             <Form.Item name="location_name" label="Area Name">
-                                <Input />
+                                <Input disabled />
                             </Form.Item>
                         </Col>
                     </Row>
                     <Row gutter={16}>
                         <Col span={12}>
                             <Form.Item name="water_level" label="Water Level (m)">
-                                <InputNumber style={{ width: '100%' }} />
+                                <InputNumber disabled style={{ width: '100%' }} />
                             </Form.Item>
                         </Col>
                         <Col span={12}>
                             <Form.Item name="rainfall" label="Rainfall (mm)">
-                                <InputNumber style={{ width: '100%' }} />
+                                <InputNumber disabled style={{ width: '100%' }} />
                             </Form.Item>
                         </Col>
                     </Row>

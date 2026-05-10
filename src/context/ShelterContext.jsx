@@ -16,8 +16,10 @@ export const ShelterProvider = ({ children }) => {
             const data = await getShelters(params);
             // Handle both { items: [] } and [] formats
             const items = data?.items ?? (Array.isArray(data) ? data : []);
-            setShelters(items);
-            setTotalShelters(data?.total ?? items.length);
+            // Sort items by ID descending to show newest first
+            const sortedItems = [...items].sort((a, b) => b.id - a.id);
+            setShelters(sortedItems);
+            setTotalShelters(data?.total ?? sortedItems.length);
             
             if (!Array.isArray(items)) {
                 console.warn('Shelters API did not return an array:', data);
@@ -64,11 +66,13 @@ export const ShelterProvider = ({ children }) => {
 
     const updateShelterStatus = async (id, newStatus) => {
         try {
-            await updateShelterApi(id, { status: newStatus });
+            const shelterToUpdate = shelters.find(s => s.id === id);
+            if (!shelterToUpdate) return;
+            await updateShelterApi(id, { ...shelterToUpdate, status: newStatus });
             setShelters(prev => prev.map(shelter => shelter.id === id ? { ...shelter, status: newStatus } : shelter));
         } catch (error) {
             console.error('Failed to update shelter status:', error);
-            message.error('Failed to update shelter status');
+            message.error(error.response?.data?.message || JSON.stringify(error.response?.data) || 'Failed to update shelter status');
             fetchShelters(); // Re-fetch to ensure local state is correct
         }
     };
