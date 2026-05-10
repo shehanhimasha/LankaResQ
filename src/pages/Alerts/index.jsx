@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
     Table, Button, Typography, Tag, Modal, Form, Input, Select,
-    Space, message, Card, Row, Col, InputNumber, Tooltip, Descriptions, Divider
+    Space, message, Card, Row, Col, InputNumber, Tooltip, Descriptions, Divider, theme
 } from 'antd';
 import {
     PlusOutlined,
@@ -20,6 +20,7 @@ const { TextArea } = Input;
 
 const Alerts = () => {
     const { alerts, loading, fetchAlerts, deleteAlert, updateAlertLocal } = useAlert();
+    const { token: { colorBgContainer } } = theme.useToken();
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isViewModalVisible, setIsViewModalVisible] = useState(false);
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -156,7 +157,7 @@ const Alerts = () => {
     ];
 
     return (
-        <div style={{ padding: '24px', background: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <div style={{ padding: '24px', background: colorBgContainer, borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                 <div>
                     <Title level={3} style={{ margin: 0 }}>Disaster Alert Monitor</Title>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card, Tooltip, Descriptions, Switch, Row, Col, Upload, Avatar } from 'antd';
+import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card, Tooltip, Descriptions, Switch, Row, Col, Upload, Avatar, theme } from 'antd';
 import { PlusOutlined, UserAddOutlined, SearchOutlined, EditOutlined, ReloadOutlined, EyeOutlined, UploadOutlined, UserOutlined } from '@ant-design/icons';
 import { useUser } from '../../context/UserContext';
 import { useAuth } from '../../context/AuthContext';
@@ -11,6 +11,7 @@ const Users = () => {
     // Access user management functions from UserContext
     const { users, totalUsers, addUser, registerUser, updateUser, refreshUsers } = useUser();
     const { user: currentUser } = useAuth();
+    const { token: { colorBgContainer, colorFillAlter } } = theme.useToken();
 
     // Pagination and Filter State
     const [currentPage, setCurrentPage] = useState(1);
@@ -211,7 +212,7 @@ const Users = () => {
     ];
 
     return (
-        <div style={{ padding: '24px', background: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <div style={{ padding: '24px', background: colorBgContainer, borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             {/* --- Page Header with Search and Add Button --- */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                 <Title level={3} style={{ margin: 0 }}>User Management</Title>
@@ -407,7 +408,7 @@ const Users = () => {
                 centered
             >
                 {viewingUser && (
-                    <div style={{ marginTop: '24px', padding: '16px', background: '#f5f5f5', borderRadius: '8px' }}>
+                    <div style={{ marginTop: '24px', padding: '16px', background: colorFillAlter, borderRadius: '8px' }}>
                         <Row gutter={[24, 24]}>
                             <Col xs={24} sm={12}>
                                 <div style={{ marginBottom: '16px' }}>

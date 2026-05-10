@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dropdown, Space, Avatar, Typography } from 'antd';
+import { Dropdown, Space, Avatar, Typography, theme } from 'antd';
 import { SettingOutlined, LogoutOutlined, DownOutlined, UserOutlined } from '@ant-design/icons';
 import { useAuth } from '../../context/AuthContext';
 
@@ -7,6 +7,7 @@ const { Text } = Typography;
 
 const UserDropdown = ({ navigate }) => {
     const { user, logout } = useAuth();
+    const { token: { colorBgContainer } } = theme.useToken();
 
     const items = [
         {
@@ -47,7 +48,7 @@ const UserDropdown = ({ navigate }) => {
                         src={user?.profileImage}
                         style={{ 
                             background: 'linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%)',
-                            border: '2px solid #fff',
+                            border: `2px solid ${colorBgContainer}`,
                             boxShadow: '0 2px 10px rgba(255, 77, 79, 0.2)',
                             display: 'flex',
                             alignItems: 'center',
@@ -62,7 +63,7 @@ const UserDropdown = ({ navigate }) => {
                         height: 10, 
                         backgroundColor: '#52c41a', 
                         borderRadius: '50%', 
-                        border: '2px solid #fff' 
+                        border: `2px solid ${colorBgContainer}` 
                     }} />
                 </div>
                 <DownOutlined style={{ fontSize: '10px', color: '#8c8c8c' }} />

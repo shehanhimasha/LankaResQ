@@ -1,5 +1,5 @@
 import React from 'react';
-import { List, Typography, Button, Card, Badge, Avatar, Space, Empty } from 'antd';
+import { List, Typography, Button, Card, Badge, Avatar, Space, Empty, theme } from 'antd';
 import { BellOutlined, CheckOutlined, DeleteOutlined, InfoCircleOutlined, WarningOutlined } from '@ant-design/icons';
 import { useNotification } from '../../context/NotificationContext';
 
@@ -7,6 +7,7 @@ const { Title, Text } = Typography;
 
 const Notifications = () => {
     const { notifications, markAsRead, markAllAsRead, clearAll } = useNotification();
+    const { token: { colorBgContainer } } = theme.useToken();
 
     const getIcon = (title) => {
         if (title.includes('Help')) return <WarningOutlined style={{ color: '#ff4d4f' }} />;
@@ -21,7 +22,7 @@ const Notifications = () => {
     }
 
     return (
-        <div style={{ padding: '24px', background: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <div style={{ padding: '24px', background: colorBgContainer, borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                 <Title level={3} style={{ margin: 0 }}>Notifications</Title>
                 <Space>

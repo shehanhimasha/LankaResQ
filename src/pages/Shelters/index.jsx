@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card, InputNumber, Tooltip, AutoComplete, Row, Col, Descriptions, Progress } from 'antd';
+import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card, InputNumber, Tooltip, AutoComplete, Row, Col, Descriptions, Progress, theme } from 'antd';
 import { PlusOutlined, DeleteOutlined, HomeOutlined, SearchOutlined, EditOutlined, EyeOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { useShelter } from '../../context/ShelterContext';
@@ -12,6 +12,7 @@ const Shelters = () => {
     // Get shelter data and management functions from ShelterContext
     const { shelters, totalShelters, loading, fetchShelters, addShelter, deleteShelter, updateShelter } = useShelter();
     const { user: currentUser } = useAuth();
+    const { token: { colorBgContainer } } = theme.useToken();
 
     // Pagination and Filter State
     const [currentPage, setCurrentPage] = useState(1);
@@ -216,7 +217,7 @@ const Shelters = () => {
     });
 
     return (
-        <div style={{ padding: '24px', background: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <div style={{ padding: '24px', background: colorBgContainer, borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             {/* --- Header Section --- */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                 <Title level={3} style={{ margin: 0 }}>Shelter Management</Title>
