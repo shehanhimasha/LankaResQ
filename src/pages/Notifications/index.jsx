@@ -1,7 +1,7 @@
 import React from 'react';
 import { List, Typography, Button, Card, Badge, Avatar, Space, Empty } from 'antd';
 import { BellOutlined, CheckOutlined, DeleteOutlined, InfoCircleOutlined, WarningOutlined } from '@ant-design/icons';
-import { useNotification } from '../context/NotificationContext';
+import { useNotification } from '../../context/NotificationContext';
 
 const { Title, Text } = Typography;
 
