@@ -29,7 +29,7 @@ const Shelters = () => {
 
         const timeoutId = setTimeout(load, 500);
         return () => clearTimeout(timeoutId);
-    }, [fetchShelters, searchText, currentPage, pageSize]);
+    }, [searchText, currentPage, pageSize]);
 
     const handleTableChange = (pagination) => {
         setCurrentPage(pagination.current);
@@ -86,7 +86,7 @@ const Shelters = () => {
         const lat = parseFloat(option.lat).toFixed(2);
         targetForm.setFieldsValue({
             locationName: value,
-            location: `${lon}, ${lat}`
+            location: `${lat}, ${lon}`
         });
     };
 
@@ -186,7 +186,7 @@ const Shelters = () => {
                 const isActive = status === 'Activate' || status === 'Active' || status === 'Available';
                 return (
                     <Tag color={isActive ? "success" : "error"}>
-                        {isActive ? "ACTIVATE" : "DEACTIVATE"}
+                        {isActive ? "ACTIVE" : "DEACTIVE"}
                     </Tag>
                 );
             },
@@ -326,7 +326,7 @@ const Shelters = () => {
                                 label="Location"
                                 rules={[{ required: true, message: 'Please enter location' }]}
                             >
-                                <Input placeholder="Longitude, Latitude" />
+                                <Input placeholder="Latitude, Longitude" />
                             </Form.Item>
                         </Col>
                     </Row>
@@ -414,7 +414,7 @@ const Shelters = () => {
                         </Col>
                         <Col span={12}>
                             <Form.Item name="location" label="Location" rules={[{ required: true, message: 'Please enter location' }]}>
-                                <Input placeholder="Longitude, Latitude" />
+                                <Input placeholder="Latitude, Longitude" />
                             </Form.Item>
                         </Col>
                     </Row>
@@ -476,12 +476,12 @@ const Shelters = () => {
                         <Descriptions.Item label="ID">{viewingShelter.id}</Descriptions.Item>
                         <Descriptions.Item label="Shelter Name">{viewingShelter.name}</Descriptions.Item>
                         <Descriptions.Item label="Location Name">{viewingShelter.locationName}</Descriptions.Item>
-                        <Descriptions.Item label="Coordinates (Lon, Lat)">{viewingShelter.location}</Descriptions.Item>
+                        <Descriptions.Item label="Coordinates (Lat, Lon)">{viewingShelter.location}</Descriptions.Item>
                         <Descriptions.Item label="Current Occupants">{viewingShelter.currentCount}</Descriptions.Item>
                         <Descriptions.Item label="Maximum Capacity">{viewingShelter.maxCount}</Descriptions.Item>
                         <Descriptions.Item label="Status">
                             <Tag color={(viewingShelter.status === 'Activate' || viewingShelter.status === 'Active' || viewingShelter.status === 'Available') ? "success" : "error"}>
-                                {(viewingShelter.status === 'Activate' || viewingShelter.status === 'Active' || viewingShelter.status === 'Available') ? "ACTIVATE" : "DEACTIVATE"}
+                                {(viewingShelter.status === 'Activate' || viewingShelter.status === 'Active' || viewingShelter.status === 'Available') ? "ACTIVE" : "DEACTIVE"}
                             </Tag>
                         </Descriptions.Item>
                         {viewingShelter.createdOn && (
