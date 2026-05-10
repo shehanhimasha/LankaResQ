@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card, InputNumber, Tooltip, AutoComplete, Row, Col, Switch, Descriptions, Progress } from 'antd';
+import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card, InputNumber, Tooltip, AutoComplete, Row, Col, Descriptions, Progress } from 'antd';
 import { PlusOutlined, DeleteOutlined, HomeOutlined, SearchOutlined, EditOutlined, EyeOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { useShelter } from '../../context/ShelterContext';
@@ -10,7 +10,7 @@ const { Option } = Select;
 
 const Shelters = () => {
     // Get shelter data and management functions from ShelterContext
-    const { shelters, totalShelters, loading, fetchShelters, addShelter, updateShelterStatus, deleteShelter, updateShelter } = useShelter();
+    const { shelters, totalShelters, loading, fetchShelters, addShelter, deleteShelter, updateShelter } = useShelter();
     const { user: currentUser } = useAuth();
 
     // Pagination and Filter State
@@ -160,16 +160,16 @@ const Shelters = () => {
                 let status = 'normal';
                 if (percent >= 90) status = 'exception';
                 else if (percent >= 70) status = 'active';
-                
+
                 return (
                     <Space direction="vertical" style={{ width: '100%' }} size={0}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
                             <span>{record.currentCount} / {record.maxCount}</span>
                             <span>{percent}%</span>
                         </div>
-                        <Progress 
-                            percent={percent} 
-                            size="small" 
+                        <Progress
+                            percent={percent}
+                            size="small"
                             status={status}
                             strokeColor={percent >= 90 ? '#ff4d4f' : undefined}
                             showInfo={false}
@@ -200,17 +200,15 @@ const Shelters = () => {
                         />
                     </Tooltip>
                     {isAdmin && (
-                        <>
-                            <Tooltip title="Edit">
-                                <Button
-                                    type="default"
-                                    size="small"
-                                    style={{ color: '#1890ff', borderColor: '#91d5ff', background: '#e6f7ff' }}
-                                    icon={<EditOutlined />}
-                                    onClick={() => handleEditClick(record)}
-                                />
-                            </Tooltip>
-                        </>
+                        <Tooltip title="Edit">
+                            <Button
+                                type="default"
+                                size="small"
+                                style={{ color: '#1890ff', borderColor: '#91d5ff', background: '#e6f7ff' }}
+                                icon={<EditOutlined />}
+                                onClick={() => handleEditClick(record)}
+                            />
+                        </Tooltip>
                     )}
                 </Space>
             );
@@ -222,7 +220,7 @@ const Shelters = () => {
             {/* --- Header Section --- */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                 <Title level={3} style={{ margin: 0 }}>Shelter Management</Title>
-                
+
                 <Space size="middle">
                     <Input.Search
                         placeholder="Search shelters..."
@@ -242,10 +240,10 @@ const Shelters = () => {
 
             {/* --- Shelters Table --- */}
             <Card bordered={false} bodyStyle={{ padding: 0 }} style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
-                <Table 
-                    columns={columns} 
-                    dataSource={shelters} 
-                    rowKey="id" 
+                <Table
+                    columns={columns}
+                    dataSource={shelters}
+                    rowKey="id"
                     pagination={{
                         current: currentPage,
                         pageSize: pageSize,
@@ -400,9 +398,9 @@ const Shelters = () => {
 
                     <Row gutter={16}>
                         <Col span={12}>
-                            <Form.Item 
-                                name="currentCount" 
-                                label="Current Count" 
+                            <Form.Item
+                                name="currentCount"
+                                label="Current Count"
                                 dependencies={['maxCount']}
                                 rules={[
                                     { required: true, message: 'Please enter current occupant count' },
@@ -458,7 +456,11 @@ const Shelters = () => {
                         <Descriptions.Item label="Coordinates (Lat, Lon)">{viewingShelter.location}</Descriptions.Item>
                         <Descriptions.Item label="Current Occupants">{viewingShelter.currentCount}</Descriptions.Item>
                         <Descriptions.Item label="Maximum Capacity">{viewingShelter.maxCount}</Descriptions.Item>
-
+                        <Descriptions.Item label="Status">
+                            <Tag color={(viewingShelter.status === 'Activate' || viewingShelter.status === 'Active' || viewingShelter.status === 'Available') ? "success" : "error"}>
+                                {(viewingShelter.status === 'Activate' || viewingShelter.status === 'Active' || viewingShelter.status === 'Available') ? "ACTIVE" : "DEACTIVE"}
+                            </Tag>
+                        </Descriptions.Item>
                         {viewingShelter.createdOn && (
                             <Descriptions.Item label="Created Date">
                                 {new Date(viewingShelter.createdOn).toISOString().split('T')[0]}
