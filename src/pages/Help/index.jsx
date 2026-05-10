@@ -1,5 +1,5 @@
 import React from 'react';
-import { Typography, Space, Input, Button } from 'antd';
+import { Typography, Space, Input, Button, theme } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import useHelp from '../../hooks/useHelp';
 import HelpTable from '../../components/help/HelpTable';
@@ -28,9 +28,10 @@ const Help = () => {
         handleComplete,
         showDeleteConfirm,
     } = useHelp();
+    const { token: { colorBgContainer } } = theme.useToken();
 
     return (
-        <div style={{ padding: '24px', background: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <div style={{ padding: '24px', background: colorBgContainer, borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <Title level={3} style={{ margin: 0 }}>Help Requests</Title>
                 <Space size="middle">
