@@ -15,6 +15,7 @@ const MainLayout = () => {
         location,
         isDarkMode,
         toggleTheme,
+        notifications,
         unreadCount,
         handleMenuClick,
         handleLogout
@@ -38,6 +39,7 @@ const MainLayout = () => {
                     setCollapsed={setCollapsed} 
                     isDarkMode={isDarkMode} 
                     toggleTheme={toggleTheme} 
+                    notifications={notifications}
                     unreadCount={unreadCount} 
                     navigate={navigate} 
                     handleLogout={handleLogout} 

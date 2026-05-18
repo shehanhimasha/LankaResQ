@@ -12,7 +12,7 @@ const useLayout = () => {
     
     const { logout } = useAuth();
     const { isDarkMode, toggleTheme } = useTheme();
-    const { unreadCount } = useNotification();
+    const { notifications, unreadCount } = useNotification();
 
     const handleMenuClick = ({ key }) => {
         navigate(key);
@@ -30,6 +30,7 @@ const useLayout = () => {
         location,
         isDarkMode,
         toggleTheme,
+        notifications,
         unreadCount,
         handleMenuClick,
         handleLogout

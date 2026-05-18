@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layout, Button, theme, Badge, Tooltip, Space } from 'antd';
+import { Layout, Button, theme, Badge, Tooltip, Space, Popover, List, Typography } from 'antd';
 import {
     MenuFoldOutlined,
     MenuUnfoldOutlined,
@@ -10,12 +10,14 @@ import {
 import UserDropdown from './UserDropdown';
 
 const { Header } = Layout;
+const { Text } = Typography;
 
 const HeaderBar = ({ 
     collapsed, 
     setCollapsed, 
     isDarkMode, 
     toggleTheme, 
+    notifications,
     unreadCount, 
     navigate, 
     handleLogout 
@@ -23,6 +25,35 @@ const HeaderBar = ({
     const {
         token: { colorBgContainer },
     } = theme.useToken();
+
+    const notificationContent = (
+        <div style={{ width: 320, maxHeight: 400, overflowY: 'auto', padding: '8px 0' }}>
+            {notifications && notifications.length > 0 ? (
+                <List
+                    itemLayout="horizontal"
+                    dataSource={notifications.slice(0, 5)} // Show up to 5 recent notifications
+                    renderItem={item => (
+                        <List.Item style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', background: item.read ? 'transparent' : '#f0f5ff' }}>
+                            <List.Item.Meta
+                                title={<span style={{ fontWeight: item.read ? 'normal' : '600', fontSize: '14px' }}>{item.title}</span>}
+                                description={
+                                    <Space direction="vertical" size={2} style={{ width: '100%' }}>
+                                        <Text style={{ fontSize: '13px', color: '#595959' }}>{item.message}</Text>
+                                        <Text type="secondary" style={{ fontSize: '11px' }}>{item.date}</Text>
+                                    </Space>
+                                }
+                            />
+                        </List.Item>
+                    )}
+                />
+            ) : (
+                <div style={{ padding: '24px 16px', textAlign: 'center', color: '#999' }}>No notifications</div>
+            )}
+            <div style={{ textAlign: 'center', padding: '12px 16px 0 16px', borderTop: notifications && notifications.length > 0 ? '1px solid #f0f0f0' : 'none' }}>
+                <Button type="link" onClick={() => navigate('/notifications')} style={{ padding: 0 }}>View All Notifications</Button>
+            </div>
+        </div>
+    );
 
     return (
         <Header style={{ 
@@ -51,7 +82,13 @@ const HeaderBar = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Space size="large">
                     {/* 1. Notifications Icon (Now First) */}
-                    <Tooltip title="Notifications">
+                    <Popover 
+                        content={notificationContent} 
+                        title={<div style={{ padding: '8px 16px', borderBottom: '1px solid #f0f0f0', fontWeight: 'bold' }}>Notifications</div>} 
+                        trigger="hover" 
+                        placement="bottomRight"
+                        overlayInnerStyle={{ padding: 0 }}
+                    >
                         <Badge count={unreadCount} offset={[0, 5]} size="small">
                             <Button
                                 type="text"
@@ -60,7 +97,7 @@ const HeaderBar = ({
                                 onClick={() => navigate('/notifications')}
                             />
                         </Badge>
-                    </Tooltip>
+                    </Popover>
 
                     {/* 2. Theme Toggle (Now Middle) */}
                     <Tooltip title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}>

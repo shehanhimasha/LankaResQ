@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card, Tooltip, Descriptions, Switch, Row, Col, Upload, Avatar, theme } from 'antd';
-import { PlusOutlined, UserAddOutlined, SearchOutlined, EditOutlined, ReloadOutlined, EyeOutlined, UploadOutlined, UserOutlined } from '@ant-design/icons';
+import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card, Tooltip, Descriptions, Switch, Row, Col, Upload, Avatar, theme, Popconfirm } from 'antd';
+import { PlusOutlined, UserAddOutlined, SearchOutlined, EditOutlined, ReloadOutlined, EyeOutlined, UploadOutlined, UserOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useUser } from '../../context/UserContext';
 import { useAuth } from '../../context/AuthContext';
 
@@ -9,7 +9,7 @@ const { Option } = Select;
 
 const Users = () => {
     // Access user management functions from UserContext
-    const { users, totalUsers, addUser, registerUser, updateUser, refreshUsers } = useUser();
+    const { users, totalUsers, addUser, registerUser, updateUser, deleteUser, refreshUsers } = useUser();
     const { user: currentUser } = useAuth();
     const { token: { colorBgContainer, colorFillAlter } } = theme.useToken();
 
@@ -120,16 +120,28 @@ const Users = () => {
         }
     };
 
+    const handleDeleteUser = async (id) => {
+        try {
+            await deleteUser(id);
+            message.success('User deleted successfully');
+            if (typeof refreshUsers === 'function') {
+                refreshUsers({ Query: searchText, Page: currentPage, PageSize: pageSize });
+            }
+        } catch (error) {
+            message.error(error.message || 'Failed to delete user');
+        }
+    };
+
     // Filter users list based on search text and RBAC
     const filteredUsers = users.filter(u => {
         const matchesSearch = u.name.toLowerCase().includes(searchText.toLowerCase()) ||
             u.email.toLowerCase().includes(searchText.toLowerCase());
 
-        const isCurrentUserSuperAdmin = currentUser?.role === 'Super Admin' || currentUser?.role === 'super admin' || currentUser?.role === 'Co-Admin' || currentUser?.role === 'co-admin';
-        const isTargetUserAdmin = u.role === 'Admin' || u.role === 'admin';
+        const isCurrentUserAdminOnly = currentUser?.role === 'Admin' || currentUser?.role === 'admin' || currentUser?.roleId === 2;
+        const isTargetSuperAdmin = u.role === 'Super Admin' || u.role === 'super admin' || u.role === 'Co-Admin' || u.role === 'co-admin' || u.roleId === 1 || u.roleId === 3;
 
-        // Super Admins cannot see Admins
-        if (isCurrentUserSuperAdmin && isTargetUserAdmin) {
+        // Admins cannot see Super Admins
+        if (isCurrentUserAdminOnly && isTargetSuperAdmin) {
             return false;
         }
 
@@ -177,9 +189,27 @@ const Users = () => {
             fixed: 'right',
             width: 150,
             render: (_, record) => {
-                const isCurrentUserSuperAdmin = currentUser?.role === 'Super Admin' || currentUser?.role === 'super admin' || currentUser?.role === 'Co-Admin' || currentUser?.role === 'co-admin';
-                const isTargetAdmin = record.role === 'Admin' || record.role === 'admin';
-                const isTargetSuperAdmin = record.role === 'Super Admin' || record.role === 'super admin' || record.role === 'Co-Admin' || record.role === 'co-admin';
+                const isCurrentUserSuperAdmin = currentUser?.role === 'Super Admin' || currentUser?.role === 'super admin' || currentUser?.role === 'Co-Admin' || currentUser?.role === 'co-admin' || currentUser?.roleId === 1 || currentUser?.roleId === 3;
+                const isCurrentUserAdmin = currentUser?.role === 'Admin' || currentUser?.role === 'admin' || currentUser?.roleId === 2;
+                const isTargetAdmin = record.role === 'Admin' || record.role === 'admin' || record.roleId === 2;
+                const isTargetSuperAdmin = record.role === 'Super Admin' || record.role === 'super admin' || record.role === 'Co-Admin' || record.role === 'co-admin' || record.roleId === 1 || record.roleId === 3;
+
+                let canShowDelete = false;
+                if (isCurrentUserSuperAdmin) {
+                    // Super Admin can delete Admin and Users (assuming they can also delete other Super Admins or not, but requirement says "both admin and users")
+                    // We will allow Super Admins to delete anyone for now, or just disable if target is Super Admin to be safe
+                    canShowDelete = true; 
+                } else if (isCurrentUserAdmin) {
+                    // Admin can delete, but NOT super admins
+                    canShowDelete = !isTargetSuperAdmin;
+                }
+
+                let isEditDisabled = true;
+                if (isCurrentUserSuperAdmin) {
+                    isEditDisabled = false; // Super Admin can edit anyone
+                } else if (isCurrentUserAdmin) {
+                    isEditDisabled = isTargetSuperAdmin; // Admin cannot edit Super Admin
+                }
 
                 return (
                     <Space size="small">
@@ -202,9 +232,28 @@ const Users = () => {
                                 style={{ color: '#1890ff', borderColor: '#91d5ff', background: '#e6f7ff' }}
                                 icon={<EditOutlined />}
                                 onClick={() => handleEditClick(record)}
-                                disabled={isTargetAdmin || (isCurrentUserSuperAdmin && isTargetSuperAdmin)}
+                                disabled={isEditDisabled}
                             />
                         </Tooltip>
+                        {canShowDelete && (
+                            <Popconfirm
+                                title="Delete the user"
+                                description="Are you sure to delete this user?"
+                                onConfirm={() => handleDeleteUser(record.id)}
+                                okText="Yes"
+                                cancelText="No"
+                            >
+                                <Tooltip title="Delete">
+                                    <Button
+                                        type="default"
+                                        size="small"
+                                        danger
+                                        style={{ color: '#ff4d4f', borderColor: '#ffa39e', background: '#fff1f0' }}
+                                        icon={<DeleteOutlined />}
+                                    />
+                                </Tooltip>
+                            </Popconfirm>
+                        )}
                     </Space>
                 );
             },
@@ -239,7 +288,7 @@ const Users = () => {
             <Card bordered={false} bodyStyle={{ padding: 0 }} style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
                 <Table
                     columns={columns}
-                    dataSource={users}
+                    dataSource={filteredUsers}
                     rowKey={(record) => record.id || record.email || Math.random().toString()}
                     pagination={{
                         current: currentPage,
@@ -322,8 +371,10 @@ const Users = () => {
                         rules={[{ required: true, message: 'Please select a role' }]}
                     >
                         <Select placeholder="Select a role">
-                            <Option value={1}>Admin</Option>
-                            <Option value={2}>Super Admin</Option>
+                            <Option value={1}>Super Admin</Option>
+                            <Option value={2}>Admin</Option>
+                            <Option value={3}>Co-Admin</Option>
+                            <Option value={4}>User</Option>
                         </Select>
                     </Form.Item>
 
