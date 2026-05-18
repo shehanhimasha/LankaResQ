@@ -11,6 +11,8 @@ const Login = () => {
     const location = useLocation();
     const [loading, setLoading] = useState(false);
 
+    const [form] = Form.useForm();
+
     const onFinish = async (values) => {
         setLoading(true);
         try {
@@ -33,6 +35,7 @@ const Login = () => {
                     <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#1890ff' }}>LankaResQ Admin</h2>
                 </div>
                 <Form
+                    form={form}
                     name="login_form"
                     initialValues={{ remember: true }}
                     onFinish={onFinish}
@@ -56,7 +59,15 @@ const Login = () => {
                     </Form.Item>
 
                     <Form.Item>
-                        <Button type="primary" htmlType="submit" className="login-form-button" block size="large">
+                        <Button 
+                            type="primary" 
+                            htmlType="submit" 
+                            className="login-form-button" 
+                            block 
+                            size="large"
+                            loading={loading}
+                            onClick={() => form.submit()}
+                        >
                             Log in
                         </Button>
                     </Form.Item>

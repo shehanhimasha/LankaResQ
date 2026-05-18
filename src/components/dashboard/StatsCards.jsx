@@ -6,7 +6,7 @@ const StatsCards = ({ totalRequests, pendingRequests, processingRequests, comple
         <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
             <Col xs={24} sm={12} lg={6}>
                 <Card bordered={false} style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
-                    <Statistic title="Total Requests" value={totalRequests} prefix={<span style={{ fontSize: 24 }}>📝</span>} />
+                    <Statistic title="Total Requests" value={totalRequests} prefix={<span style={{ fontSize: 24 }}></span>} />
                 </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>

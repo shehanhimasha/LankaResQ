@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Typography, Form, Input, Button, Card, message, Row, Col, Upload, Avatar, Divider } from 'antd';
+import { Typography, Form, Input, Button, Card, message, Row, Col, Upload, Avatar, Divider, theme } from 'antd';
 import { 
     UserOutlined, 
     MailOutlined, 
@@ -15,6 +15,7 @@ const { Title, Text } = Typography;
 
 const Profile = () => {
     const { user, updateProfile } = useAuth();
+    const { token: { colorBgContainer } } = theme.useToken();
     const [form] = Form.useForm();
     const [imageUrl, setImageUrl] = useState(null);
 
@@ -65,7 +66,7 @@ const Profile = () => {
     };
 
     return (
-        <div style={{ padding: '24px', background: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <div style={{ padding: '24px', background: colorBgContainer, borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Title level={3} style={{ marginBottom: 24 }}>Profile Settings</Title>
 
             <Row gutter={24}>
@@ -87,7 +88,7 @@ const Profile = () => {
                                 src={imageUrl}
                                 style={{ 
                                     background: 'linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%)',
-                                    border: '4px solid #fff',
+                                    border: `4px solid ${colorBgContainer}`,
                                     boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
                                 }}
                             />
@@ -103,7 +104,7 @@ const Profile = () => {
                                         position: 'absolute', 
                                         bottom: 5, 
                                         right: 5, 
-                                        background: '#fff',
+                                        background: colorBgContainer,
                                         border: '1px solid #d9d9d9',
                                         boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
                                     }} 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Typography, Row, Col } from 'antd';
+import { Typography, Row, Col, theme } from 'antd';
 import useDashboard from '../../hooks/useDashboard';
 import StatsCards from '../../components/dashboard/StatsCards';
 import RequestsLineChart from '../../components/dashboard/RequestsLineChart';
@@ -22,9 +22,10 @@ const Home = () => {
         sortedRequests,
         updateRequestStatus
     } = useDashboard();
+    const { token: { colorBgContainer } } = theme.useToken();
 
     return (
-        <div style={{ padding: '24px', background: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <div style={{ padding: '24px', background: colorBgContainer, borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Title level={3} style={{ marginBottom: 24 }}>Dashboard Overview</Title>
 
             <StatsCards 

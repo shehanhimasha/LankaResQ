@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { 
-    Table, Button, Typography, Tag, Modal, Form, Input, Select, 
-    Space, message, Card, Row, Col, InputNumber, Tooltip, Descriptions, Divider 
+import {
+    Table, Button, Typography, Tag, Modal, Form, Input, Select,
+    Space, message, Card, Row, Col, InputNumber, Tooltip, Descriptions, Divider, theme
 } from 'antd';
-import { 
-    PlusOutlined, 
-    DeleteOutlined, 
-    EditOutlined, 
-    EyeOutlined, 
+import {
+    PlusOutlined,
+    DeleteOutlined,
+    EditOutlined,
+    EyeOutlined,
     SendOutlined,
     WarningOutlined,
     InfoCircleOutlined
@@ -20,6 +20,7 @@ const { TextArea } = Input;
 
 const Alerts = () => {
     const { alerts, loading, fetchAlerts, deleteAlert, updateAlertLocal } = useAlert();
+    const { token: { colorBgContainer } } = theme.useToken();
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isViewModalVisible, setIsViewModalVisible] = useState(false);
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -62,19 +63,20 @@ const Alerts = () => {
             dataIndex: 'alert_id',
             key: 'alert_id',
             width: 180,
-            render: (id) => <Text code>{id}</Text>
+            render: (id) => <Text>{id}</Text>
         },
         {
             title: 'Title',
             dataIndex: 'title',
             key: 'title',
-            width: 200,
+            width: 150,
+            render: (text) => <div style={{ whiteSpace: 'normal', wordWrap: 'break-word', wordBreak: 'break-word' }}>{text}</div>
         },
         {
             title: 'Severity',
             dataIndex: 'severity_level',
             key: 'severity_level',
-            width: 100,
+            width: 80,
             render: (level) => {
                 const upperLevel = level?.toUpperCase() || 'UNKNOWN';
                 let color = 'default';
@@ -90,15 +92,15 @@ const Alerts = () => {
             title: 'Event Type',
             dataIndex: 'event_type',
             key: 'event_type',
-            width: 120,
+            width: 140,
             render: (type) => <Tag icon={<InfoCircleOutlined />} color="cyan">{type}</Tag>
         },
         {
-            title: 'Confidence',
-            dataIndex: 'confidence',
-            key: 'confidence',
-            width: 80,
-            render: (val) => <Text strong>{Math.round((val || 0) * 100)}%</Text>
+            title: 'Created At',
+            dataIndex: 'created_at',
+            key: 'created_at',
+            width: 180,
+            render: (date) => date ? new Date(date).toLocaleString() : 'N/A'
         },
         {
             title: 'Action',
@@ -108,23 +110,23 @@ const Alerts = () => {
             render: (_, record) => (
                 <Space size="small">
                     <Tooltip title="View Details">
-                        <Button 
-                            type="default" 
+                        <Button
+                            type="default"
                             size="small"
                             style={{ color: '#722ed1', borderColor: '#d3adf7', background: '#f9f0ff' }}
-                            icon={<EyeOutlined />} 
+                            icon={<EyeOutlined />}
                             onClick={() => {
                                 setCurrentAlert(record);
                                 setIsViewModalVisible(true);
-                            }} 
+                            }}
                         />
                     </Tooltip>
                     <Tooltip title="Edit Locally">
-                        <Button 
-                            type="default" 
+                        <Button
+                            type="default"
                             size="small"
                             style={{ color: '#1890ff', borderColor: '#91d5ff', background: '#e6f7ff' }}
-                            icon={<EditOutlined />} 
+                            icon={<EditOutlined />}
                             onClick={() => {
                                 setCurrentAlert(record);
                                 editForm.setFieldsValue({
@@ -136,17 +138,17 @@ const Alerts = () => {
                                     rainfall: record.metrics?.rainfall_mm
                                 });
                                 setIsEditModalVisible(true);
-                            }} 
+                            }}
                         />
                     </Tooltip>
                     <Tooltip title="Delete">
-                        <Button 
-                            type="default" 
+                        <Button
+                            type="default"
                             size="small"
                             danger
                             style={{ color: '#ff4d4f', borderColor: '#ffa39e', background: '#fff1f0' }}
-                            icon={<DeleteOutlined />} 
-                            onClick={() => confirmDelete(record.id)} 
+                            icon={<DeleteOutlined />}
+                            onClick={() => confirmDelete(record.id)}
                         />
                     </Tooltip>
                 </Space>
@@ -155,24 +157,23 @@ const Alerts = () => {
     ];
 
     return (
-        <div style={{ padding: '24px', background: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <div style={{ padding: '24px', background: colorBgContainer, borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                 <div>
                     <Title level={3} style={{ margin: 0 }}>Disaster Alert Monitor</Title>
-                    <Text type="secondary">Monitor and manage received emergency alerts from the disaster management system.</Text>
                 </div>
             </div>
 
             <Card bordered={false} bodyStyle={{ padding: 0 }} style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
-                <Table 
-                    columns={columns} 
-                    dataSource={alerts} 
+                <Table
+                    columns={columns}
+                    dataSource={alerts}
                     loading={loading}
                     rowKey="id"
-                    pagination={{ 
-                        pageSize: 8, 
+                    pagination={{
+                        pageSize: 8,
                         showTotal: (total) => `Total ${total} alerts`,
-                        showSizeChanger: true 
+                        showSizeChanger: true
                     }}
                     scroll={{ x: 1000 }}
                 />
@@ -190,23 +191,23 @@ const Alerts = () => {
             >
                 {currentAlert && (
                     <Descriptions bordered column={2}>
-                        <Descriptions.Item label="Alert ID" span={2}><Text code>{currentAlert.alert_id || currentAlert.id || 'N/A'}</Text></Descriptions.Item>
+                        <Descriptions.Item label="Alert ID" span={2}>{currentAlert.alert_id || currentAlert.id || 'N/A'}</Descriptions.Item>
                         <Descriptions.Item label="Title" span={2}>{currentAlert.title || 'Untitled Alert'}</Descriptions.Item>
                         <Descriptions.Item label="Severity">
                             <Tag color={
-                                currentAlert.severity_level?.toUpperCase() === 'CRITICAL' ? 'red' : 
-                                currentAlert.severity_level?.toUpperCase() === 'HIGH' ? 'orange' : 
-                                (currentAlert.severity_level?.toUpperCase() === 'MEDIUM' || currentAlert.severity_level?.toUpperCase() === 'WARNING') ? 'gold' : 
-                                (currentAlert.severity_level?.toUpperCase() === 'LOW' || currentAlert.severity_level?.toUpperCase() === 'NORMAL') ? 'blue' : 
-                                (currentAlert.severity_level?.toUpperCase() === 'INFO' || currentAlert.severity_level?.toUpperCase() === 'SUCCESS') ? 'green' : 
-                                'default'
+                                currentAlert.severity_level?.toUpperCase() === 'CRITICAL' ? 'red' :
+                                    currentAlert.severity_level?.toUpperCase() === 'HIGH' ? 'orange' :
+                                        (currentAlert.severity_level?.toUpperCase() === 'MEDIUM' || currentAlert.severity_level?.toUpperCase() === 'WARNING') ? 'gold' :
+                                            (currentAlert.severity_level?.toUpperCase() === 'LOW' || currentAlert.severity_level?.toUpperCase() === 'NORMAL') ? 'blue' :
+                                                (currentAlert.severity_level?.toUpperCase() === 'INFO' || currentAlert.severity_level?.toUpperCase() === 'SUCCESS') ? 'green' :
+                                                    'default'
                             }>
                                 {currentAlert.severity_level?.toUpperCase() || 'UNKNOWN'}
                             </Tag>
                         </Descriptions.Item>
                         <Descriptions.Item label="Event Type">{currentAlert.event_type || 'Unknown'}</Descriptions.Item>
                         <Descriptions.Item label="Location" span={2}>
-                            {currentAlert.location?.name || 'Unknown'}, {currentAlert.location?.district || 'Unknown'} 
+                            {currentAlert.location?.name || 'Unknown'}, {currentAlert.location?.district || 'Unknown'}
                             {currentAlert.location?.station_code ? ` (Code: ${currentAlert.location.station_code})` : ''}
                         </Descriptions.Item>
                         <Descriptions.Item label="Metrics">
