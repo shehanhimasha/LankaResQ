@@ -201,15 +201,27 @@ const Shelters = () => {
                         />
                     </Tooltip>
                     {isAdmin && (
-                        <Tooltip title="Edit">
-                            <Button
-                                type="default"
-                                size="small"
-                                style={{ color: '#1890ff', borderColor: '#91d5ff', background: '#e6f7ff' }}
-                                icon={<EditOutlined />}
-                                onClick={() => handleEditClick(record)}
-                            />
-                        </Tooltip>
+                        <>
+                            <Tooltip title="Edit">
+                                <Button
+                                    type="default"
+                                    size="small"
+                                    style={{ color: '#1890ff', borderColor: '#91d5ff', background: '#e6f7ff' }}
+                                    icon={<EditOutlined />}
+                                    onClick={() => handleEditClick(record)}
+                                />
+                            </Tooltip>
+                            <Tooltip title="Delete">
+                                <Button
+                                    type="default"
+                                    size="small"
+                                    danger
+                                    style={{ color: '#ff4d4f', borderColor: '#ffa39e', background: '#fff1f0' }}
+                                    icon={<DeleteOutlined />}
+                                    onClick={() => handleDelete(record.id)}
+                                />
+                            </Tooltip>
+                        </>
                     )}
                 </Space>
             );
