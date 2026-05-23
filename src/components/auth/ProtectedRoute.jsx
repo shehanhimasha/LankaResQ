@@ -6,6 +6,10 @@ import FullScreenLoader from './FullScreenLoader';
 const ProtectedRoute = ({ children }) => {
     const { user, loading, location } = useAuthGuard();
 
+    if (loading) {
+        return <FullScreenLoader />;
+    }
+
     if (!user) {
         return <Navigate to="/login" state={{ from: location }} replace />;
     }

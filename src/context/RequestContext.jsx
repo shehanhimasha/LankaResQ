@@ -1,4 +1,5 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import helpRequestService from '../services/helpRequestService';
 
 const RequestContext = createContext(null);
 
@@ -11,12 +12,12 @@ export const RequestProvider = ({ children }) => {
             label: 'Type of Emergency',
             options: [
                 { label: 'Rescue', value: 'rescue', icon: 'SafetyCertificateOutlined' },
-                { label: 'Food', value: 'food', icon: 'CoffeeOutlined' }, // Using available icons or just text for now
+                { label: 'Food', value: 'food', icon: 'CoffeeOutlined' },
                 { label: 'Shelter', value: 'shelter', icon: 'HomeOutlined' },
                 { label: 'Medical', value: 'medical', icon: 'MedicineBoxOutlined' },
             ],
             required: true,
-            fixed: true, // Cannot be deleted
+            fixed: true,
         },
         {
             id: 'urgencyLevel',
@@ -53,88 +54,79 @@ export const RequestProvider = ({ children }) => {
         },
         {
             id: 'location',
-            type: 'location', // Custom type for "type or get device location"
+            type: 'location',
             label: 'Location',
             required: true,
             fixed: true,
         },
     ]);
 
-    // Mock Help Requests
-    const [requests, setRequests] = useState([
-        {
-            id: 100001,
-            name: 'Kamal Perera',
-            reminder: 2,
-            emergencyType: ['rescue', 'medical'],
-            urgencyLevel: 'high',
-            numberOfPeople: 4,
-            moreDetails: 'Trapped due to flood water rising.',
-            contactNumber: '0771234567',
-            location: 'Colombo 10', // Colombo approx
-            status: 'pending',
-            timestamp: new Date().toISOString(),
-        },
-        {
-            id: 100002,
-            name: 'Nimali Silva',
-            reminder: 0,
-            emergencyType: ['food'],
-            urgencyLevel: 'medium',
-            numberOfPeople: 10,
-            moreDetails: 'Need dry rations for 3 families.',
-            contactNumber: '0719876543',
-            location: 'Galle',
-            status: 'pending',
-            timestamp: new Date(Date.now() - 86400000).toISOString(), // Yesterday
-        },
-        {
-            id: 100003,
-            name: 'Ruwan Kumara',
-            reminder: 5,
-            emergencyType: ['shelter'],
-            urgencyLevel: 'low',
-            numberOfPeople: 2,
-            moreDetails: 'Roof damaged.',
-            contactNumber: '0755555555',
-            location: 'Kandy',
-            status: 'pending',
-            timestamp: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-        },
-        {
-            id: 100004,
-            name: 'Priyanka Dias',
-            reminder: 0,
-            emergencyType: ['food'],
-            urgencyLevel: 'medium',
-            numberOfPeople: 12,
-            moreDetails: 'Need dry rations for 2 families.',
-            contactNumber: '0757775555',
-            location: 'Beruwala',
-            status: 'pending',
-            timestamp: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-        },
-    ]);
+    const [requests, setRequests] = useState([]);
+
+    const fetchRequests = async () => {
+        try {
+            const data = await helpRequestService.getAllHelpRequests({ Page: 1, PageSize: 100 });
+            if (data && data.items) {
+                const mapped = data.items.map(item => ({
+                    id: item.id,
+                    name: item.name || 'Unknown',
+                    location: item.location || 'Unknown',
+                    reminder: item.remindedCount || 0,
+                    emergencyType: item.emergencyType?.description ? [item.emergencyType.description.toLowerCase()] : [],
+                    urgencyLevel: item.ugrencyLevel?.name?.toLowerCase() || item.urgencyLevel?.name?.toLowerCase() || 'medium',
+                    numberOfPeople: item.noOfPeople || 1,
+                    moreDetails: item.description || item.note || '',
+                    contactNumber: item.helpRequestId || 'N/A', // Using helpRequestId as fallback if the backend doesn't provide contact in GET
+                    status: item.activeStatus?.name?.toLowerCase() || item.approvalStage?.name?.toLowerCase() || 'pending',
+                    timestamp: item.createdOn || new Date().toISOString()
+                }));
+                setRequests(mapped);
+            }
+        } catch (error) {
+            console.error('Failed to fetch help requests', error);
+        }
+    };
+
+    useEffect(() => {
+        fetchRequests();
+    }, []);
 
     const updateSchema = (newSchema) => {
         setFormSchema(newSchema);
     };
 
     const updateRequestStatus = (id, newStatus) => {
-        setRequests(requests.map(req => req.id === id ? { ...req, status: newStatus } : req));
+        setRequests(requests => requests.map(req => req.id === id ? { ...req, status: newStatus } : req));
     };
 
     const updateRequest = (updatedRequest) => {
-        setRequests(requests.map(req => req.id === updatedRequest.id ? updatedRequest : req));
+        setRequests(requests => requests.map(req => req.id === updatedRequest.id ? updatedRequest : req));
     };
 
-    const addRequest = (newRequest) => {
-        const nextId = requests.length > 0 ? Math.max(...requests.map(r => r.id)) + 1 : 1;
-        setRequests([...requests, { ...newRequest, id: nextId, status: 'pending', timestamp: new Date().toISOString() }]);
-    }
+    const addRequest = async (newRequest) => {
+        try {
+            // Mapping frontend model to POST schema
+            const payload = {
+                name: newRequest.name,
+                location: newRequest.location,
+                description: newRequest.moreDetails,
+                noOfPeople: newRequest.numberOfPeople ? parseInt(newRequest.numberOfPeople) : 1,
+                emergencyTypeId: 1, // Fallback if not specified in UI appropriately
+                ugrencyLevelId: newRequest.urgencyLevel === 'high' ? 3 : newRequest.urgencyLevel === 'medium' ? 2 : 1,
+                latitude: 0,
+                longitude: 0
+            };
+            await helpRequestService.createHelpRequest(payload);
+            fetchRequests(); // Reload list after successful creation
+        } catch (error) {
+            console.error('Failed to add request to backend, falling back to local state', error);
+            const nextId = requests.length > 0 ? Math.max(...requests.map(r => r.id)) + 1 : 1;
+            setRequests(prev => [...prev, { ...newRequest, id: nextId, status: 'pending', timestamp: new Date().toISOString() }]);
+        }
+    };
 
     const deleteRequest = (id) => {
-        setRequests(requests.filter(req => req.id !== id));
+        setRequests(requests => requests.filter(req => req.id !== id));
     };
 
     return (
