@@ -1,17 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Typography, Tag, Modal, Form, Input, Select, Space, message, Card, Tooltip, Descriptions, Switch, Row, Col, Upload, Avatar, theme, Popconfirm } from 'antd';
-import { PlusOutlined, UserAddOutlined, SearchOutlined, EditOutlined, ReloadOutlined, EyeOutlined, UploadOutlined, UserOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, UserAddOutlined, SearchOutlined, EditOutlined, ReloadOutlined, EyeOutlined, UploadOutlined, UserOutlined, DeleteOutlined, EnvironmentOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
 import { useAuth } from '../../context/AuthContext';
 
 const { Title } = Typography;
 const { Option } = Select;
 
+const parseCoordinates = (locStr) => {
+    if (!locStr) return null;
+    const matches = locStr.match(/(-?\d+(?:\.\d+)?)/g);
+    if (matches && matches.length >= 2) {
+        const num1 = parseFloat(matches[0]);
+        const num2 = parseFloat(matches[1]);
+        if (!isNaN(num1) && !isNaN(num2)) {
+            // Auto-detect based on absolute values (latitude is smaller than longitude in Sri Lanka/most regions)
+            if (Math.abs(num1) < Math.abs(num2)) {
+                return { lat: num1, lng: num2 };
+            } else {
+                return { lat: num2, lng: num1 };
+            }
+        }
+    }
+    return null;
+};
+
 const Users = () => {
     // Access user management functions from UserContext
     const { users, totalUsers, addUser, registerUser, updateUser, deleteUser, refreshUsers } = useUser();
     const { user: currentUser } = useAuth();
     const { token: { colorBgContainer, colorFillAlter } } = theme.useToken();
+    const navigate = useNavigate();
 
     // Pagination and Filter State
     const [currentPage, setCurrentPage] = useState(1);
@@ -193,15 +213,18 @@ const Users = () => {
                 const isCurrentUserAdmin = currentUser?.role === 'Admin' || currentUser?.role === 'admin' || currentUser?.roleId === 2;
                 const isTargetAdmin = record.role === 'Admin' || record.role === 'admin' || record.roleId === 2;
                 const isTargetSuperAdmin = record.role === 'Super Admin' || record.role === 'super admin' || record.role === 'Co-Admin' || record.role === 'co-admin' || record.roleId === 1 || record.roleId === 3;
+                const isTargetUser = !record.role || record.role.toLowerCase() === 'user' || record.roleId === 4;
 
                 let canShowDelete = false;
-                if (isCurrentUserSuperAdmin) {
-                    // Super Admin can delete Admin and Users (assuming they can also delete other Super Admins or not, but requirement says "both admin and users")
-                    // We will allow Super Admins to delete anyone for now, or just disable if target is Super Admin to be safe
-                    canShowDelete = true; 
-                } else if (isCurrentUserAdmin) {
-                    // Admin can delete, but NOT super admins
-                    canShowDelete = !isTargetSuperAdmin;
+                if (!isTargetUser) {
+                    if (isCurrentUserSuperAdmin) {
+                        // Super Admin can delete Admin (assuming they can also delete other Super Admins or not, but requirement says "both admin and users")
+                        // We will allow Super Admins to delete anyone for now, or just disable if target is Super Admin to be safe
+                        canShowDelete = true; 
+                    } else if (isCurrentUserAdmin) {
+                        // Admin can delete, but NOT super admins
+                        canShowDelete = !isTargetSuperAdmin;
+                    }
                 }
 
                 let isEditDisabled = true;
@@ -497,7 +520,42 @@ const Users = () => {
                                 </div>
                                 <div style={{ marginBottom: '16px' }}>
                                     <Typography.Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Current Location</Typography.Text>
-                                    <Typography.Text strong style={{ fontSize: '15px' }}>{viewingUser.currentLocation || '—'}</Typography.Text>
+                                    {(() => {
+                                        const coords = parseCoordinates(viewingUser.currentLocation);
+                                        if (coords) {
+                                            return (
+                                                <a 
+                                                    style={{ 
+                                                        fontSize: '15px', 
+                                                        fontWeight: 'bold', 
+                                                        color: '#1890ff', 
+                                                        cursor: 'pointer',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px'
+                                                    }}
+                                                    onClick={() => {
+                                                        setIsViewModalVisible(false);
+                                                        const fullName = `${viewingUser.firstName || viewingUser.name?.split(' ')[0] || ''} ${viewingUser.lastName || viewingUser.name?.split(' ').slice(1).join(' ') || ''}`.trim() || 'User';
+                                                        navigate('/danger-zone', { 
+                                                            state: { 
+                                                                center: [coords.lat, coords.lng],
+                                                                userName: fullName
+                                                            } 
+                                                        });
+                                                    }}
+                                                >
+                                                    <EnvironmentOutlined />
+                                                    {viewingUser.currentLocation}
+                                                </a>
+                                            );
+                                        }
+                                        return (
+                                            <Typography.Text strong style={{ fontSize: '15px' }}>
+                                                {viewingUser.currentLocation || '—'}
+                                            </Typography.Text>
+                                        );
+                                    })()}
                                 </div>
                                 <div style={{ marginBottom: '16px' }}>
                                     <Typography.Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Updated At</Typography.Text>
