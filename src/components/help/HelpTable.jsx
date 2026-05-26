@@ -19,11 +19,25 @@ const HelpTable = ({ requests, searchQuery, handleView, handleComplete, showDele
             title: 'Location',
             dataIndex: 'location',
             key: 'location',
+            width: 250,
+            render: (text) => (
+                <div style={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    wordBreak: 'break-word',
+                    whiteSpace: 'normal'
+                }}>
+                    {text}
+                </div>
+            )
         },
         {
             title: 'Urgency Level',
             dataIndex: 'urgencyLevel',
             key: 'urgencyLevel',
+            width: 120,
             filters: [
                 { text: 'High', value: 'high' },
                 { text: 'Medium', value: 'medium' },
@@ -31,9 +45,9 @@ const HelpTable = ({ requests, searchQuery, handleView, handleComplete, showDele
             ],
             onFilter: (value, record) => record.urgencyLevel === value,
             render: (urgency) => {
-                let color = 'green';
-                if (urgency === 'high') color = 'red';
-                if (urgency === 'medium') color = 'orange';
+                let color = 'success';
+                if (urgency === 'high') color = 'error';
+                if (urgency === 'medium') color = 'warning';
                 return <Tag color={color}>{urgency?.toUpperCase()}</Tag>;
             },
         },
@@ -42,10 +56,11 @@ const HelpTable = ({ requests, searchQuery, handleView, handleComplete, showDele
             dataIndex: 'reminder',
             key: 'reminder',
             align: 'center',
+            width: 100,
             render: (count) => (
                 <Space>
-                    <BellOutlined style={{ color: count > 0 ? '#faad14' : '#cf1322', fontSize: '18px' }} />
-                    <span style={{ fontWeight: 'bold', fontSize: '16px', color: count > 0 ? '#000' : '#8c8c8c' }}>
+                    <BellOutlined style={{ color: count > 0 ? '#faad14' : '#cf1322', fontSize: '16px' }} />
+                    <span style={{ fontWeight: 'bold', fontSize: '14px', color: count > 0 ? '#000' : '#8c8c8c' }}>
                         {count || 0}
                     </span>
                 </Space>
@@ -55,12 +70,14 @@ const HelpTable = ({ requests, searchQuery, handleView, handleComplete, showDele
             title: 'Submitted At',
             dataIndex: 'timestamp',
             key: 'timestamp',
+            width: 180,
             render: (ts) => ts ? new Date(ts).toLocaleString() : ''
         },
         {
             title: 'Status',
             dataIndex: 'status',
             key: 'status',
+            width: 120,
             filters: [
                 { text: 'Pending', value: 'pending' },
                 { text: 'Processing', value: 'processing' },
@@ -72,22 +89,23 @@ const HelpTable = ({ requests, searchQuery, handleView, handleComplete, showDele
                 return record.status === value;
             },
             render: (status) => {
-                let color = 'blue';
-                if (status === 'pending') color = 'orange';
-                if (status === 'completed' || status === 'success') color = 'green';
-                if (status === 'delay') color = 'red';
+                let color = 'processing';
+                if (status === 'pending') color = 'warning';
+                if (status === 'completed' || status === 'success') color = 'success';
+                if (status === 'delay') color = 'error';
                 return <Tag color={color}>{status?.toUpperCase()}</Tag>;
             },
         },
         {
             title: 'Action',
             key: 'action',
+            width: 150,
             render: (_, record) => (
                 <Space size="middle">
                     <Tooltip title="View Details">
                         <Button
                             type="default"
-                            style={{ color: '#1890ff', borderColor: '#91d5ff', background: '#e6f7ff' }}
+                            style={{ color: '#722ed1', borderColor: '#d3adf7', background: '#f9f0ff' }}
                             icon={<EyeOutlined />}
                             size="small"
                             onClick={() => handleView(record)}
@@ -110,7 +128,7 @@ const HelpTable = ({ requests, searchQuery, handleView, handleComplete, showDele
                         <Button
                             type="default"
                             danger
-                            style={{ color: '#f5222d', borderColor: '#ffa39e', background: '#fff1f0' }}
+                            style={{ color: '#ff4d4f', borderColor: '#ffa39e', background: '#fff1f0' }}
                             icon={<DeleteOutlined />}
                             size="small"
                             onClick={() => showDeleteConfirm(record)}
@@ -134,7 +152,11 @@ const HelpTable = ({ requests, searchQuery, handleView, handleComplete, showDele
         const bCompleted = b.status === 'success' || b.status === 'completed';
         if (aCompleted && !bCompleted) return 1;
         if (!aCompleted && bCompleted) return -1;
-        return 0;
+        
+        // If both have same completion status, sort by newest first
+        const dateA = new Date(a.timestamp || 0);
+        const dateB = new Date(b.timestamp || 0);
+        return dateB - dateA;
     });
 
     return (
