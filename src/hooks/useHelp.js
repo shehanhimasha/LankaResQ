@@ -85,7 +85,7 @@ const useHelp = () => {
         const updatedRecord = {
             ...selectedRequest,
             feedback: feedbackText,
-            status: isFirstSubmit ? 'processing' : selectedRequest.status,
+            status: 'processing',
         };
 
         if (!updatedRecord.logs) {
@@ -169,6 +169,7 @@ const useHelp = () => {
         handleFeedbackSubmit,
         handleComplete,
         showDeleteConfirm,
+        updateRequestStatus,
     };
 };
 

@@ -1,9 +1,7 @@
 import React from 'react';
-import { Card, Table, Tag, Select } from 'antd';
+import { Card, Table, Tag } from 'antd';
 
-const { Option } = Select;
-
-const RecentRequestsTable = ({ sortedRequests, updateRequestStatus }) => {
+const RecentRequestsTable = ({ sortedRequests }) => {
     const columns = [
         { title: 'ID', dataIndex: 'id', key: 'id' },
         {
@@ -45,22 +43,24 @@ const RecentRequestsTable = ({ sortedRequests, updateRequestStatus }) => {
             filters: [
                 { text: 'Pending', value: 'pending' },
                 { text: 'Processing', value: 'processing' },
-                { text: 'Success', value: 'success' },
+                { text: 'Completed', value: 'success' },
                 { text: 'Delay', value: 'delay' },
             ],
-            onFilter: (value, record) => record.status === value,
-            render: (status, record) => (
-                <Select
-                    defaultValue={status}
-                    style={{ width: 120 }}
-                    onChange={(value) => updateRequestStatus(record.id, value)}
-                >
-                    <Option value="pending"><Tag color="orange">PENDING</Tag></Option>
-                    <Option value="processing"><Tag color="blue">PROCESSING</Tag></Option>
-                    <Option value="delay"><Tag color="red">DELAY</Tag></Option>
-                    <Option value="success"><Tag color="green">SUCCESS</Tag></Option>
-                </Select>
-            ),
+            onFilter: (value, record) => {
+                let status = record.status;
+                if (status === 'active') status = 'pending';
+                if (value === 'success') return status === 'success' || status === 'completed';
+                return status === value;
+            },
+            render: (status) => {
+                let currentStatus = status || 'pending';
+                if (currentStatus === 'active') currentStatus = 'pending';
+                let color = 'processing';
+                if (currentStatus === 'pending') color = 'warning';
+                if (currentStatus === 'completed' || currentStatus === 'success') color = 'success';
+                if (currentStatus === 'delay') color = 'error';
+                return <Tag color={color}>{currentStatus?.toUpperCase()}</Tag>;
+            },
         }
     ];
 
