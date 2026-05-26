@@ -1,13 +1,34 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, Modal, Form, Input, Select, Button, Space, Radio, Tooltip } from 'antd';
 const { Option } = Select;
-import { MapContainer, TileLayer } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { useLocation } from 'react-router-dom';
+import L from 'leaflet';
 import { DragOutlined, SelectOutlined, WarningOutlined, PhoneOutlined, FileTextOutlined } from '@ant-design/icons';
 import 'leaflet/dist/leaflet.css';
 import MapBoxSelector from './MapBoxSelector';
 import BulkActionPopup from './BulkActionPopup';
 import ZoneMarker from './ZoneMarker';
 import useDangerZoneMap from '../../hooks/useDangerZoneMap';
+
+const USER_SVG = `<svg viewBox="0 0 1024 1024" width="14" height="14" fill="currentColor"><path d="M858.5 763.6a374 374 0 0 0-707 0c-4.1 11.2-.2 23.5 9.7 30.5 48.9 34.6 109.9 55.4 175.7 58.7 6.1.3 11.9-2.2 15.6-7.1 27.5-36 70.8-59.7 119.7-59.7s92.2 23.7 119.7 59.7c3.7 4.9 9.5 7.4 15.6 7.1 65.8-3.3 126.8-24.1 175.7-58.7 10-7 13.9-19.3 9.7-30.5zM512 590c100.5 0 182-81.5 182-182s-81.5-182-182-182-182 81.5-182 182 81.5 182 182 182z"></path></svg>`;
+
+const UserLocationIcon = L.divIcon({
+    className: 'custom-user-marker',
+    html: `<div style="background-color: #722ed1; width: 28px; height: 28px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 12px rgba(114,46,209,0.7); display: flex; align-items: center; justify-content: center; color: white;">${USER_SVG}</div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14]
+});
+
+const ChangeMapView = ({ center }) => {
+    const map = useMap();
+    useEffect(() => {
+        if (center) {
+            map.setView(center, 14);
+        }
+    }, [center, map]);
+    return null;
+};
 
 const DangerZoneMap = () => {
     const {
@@ -28,6 +49,9 @@ const DangerZoneMap = () => {
         setSelectionMode
     } = useDangerZoneMap();
     const [form] = Form.useForm();
+    const location = useLocation();
+    const redirectCenter = location.state?.center;
+    const redirectName = location.state?.userName;
 
     return (
         <Card bordered={false} style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.05)', padding: 0, overflow: 'hidden', position: 'relative' }}>
@@ -81,6 +105,22 @@ const DangerZoneMap = () => {
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 />
                 
+                <ChangeMapView center={redirectCenter} />
+
+                {redirectCenter && (
+                    <Marker position={redirectCenter} icon={UserLocationIcon}>
+                        <Popup>
+                            <div style={{ textAlign: 'center', padding: '4px' }}>
+                                <strong style={{ color: '#722ed1' }}>{redirectName ? `${redirectName}'s Location` : "User's Location"}</strong>
+                                <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                                    Lat: {redirectCenter[0]}<br/>
+                                    Lng: {redirectCenter[1]}
+                                </div>
+                            </div>
+                        </Popup>
+                    </Marker>
+                )}
+
                 <MapBoxSelector 
                     onAreaSelected={handleAreaSelected} 
                     onMapClick={handleMapClick}

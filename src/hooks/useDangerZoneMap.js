@@ -13,7 +13,7 @@ notification.config({
 
 const useDangerZoneMap = () => {
     const { dangerZones, addZone, approveZone, rejectZone, bulkApproveZones, bulkRejectZones } = useDangerZone();
-    
+
     // State for interactive map selection
     const [selectedIds, setSelectedIds] = useState([]);
     const [bulkPopupPosition, setBulkPopupPosition] = useState(null);
@@ -57,8 +57,12 @@ const useDangerZoneMap = () => {
             return;
         }
         if (latlng) {
-            setClickedLocation(latlng);
-            setIsAddPinModalOpen(true);
+            const { lat, lng } = latlng;
+            // Bounding box for Sri Lanka ground area
+            if (lat >= 5.9 && lat <= 9.9 && lng >= 79.5 && lng <= 82.0) {
+                setClickedLocation(latlng);
+                setIsAddPinModalOpen(true);
+            }
         }
     };
 
@@ -130,7 +134,7 @@ const useDangerZoneMap = () => {
                 if (newIds.length === 0) setBulkPopupPosition(null);
                 return newIds;
             } else {
-                setBulkPopupPosition(zone.coordinates); 
+                setBulkPopupPosition(zone.coordinates);
                 return [...prev, zone.id];
             }
         });
@@ -142,7 +146,7 @@ const useDangerZoneMap = () => {
         const idsToApprove = dangerZones
             .filter(z => selectedIds.includes(z.id) && z.status === 'pending')
             .map(z => z.id);
-        
+
         if (idsToApprove.length === 0) return;
 
         bulkApproveZones(idsToApprove);
