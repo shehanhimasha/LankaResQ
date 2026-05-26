@@ -1,12 +1,16 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import dangerZoneService from '../services/dangerZoneService';
+import { notification } from 'antd';
+import { useAuth } from './AuthContext';
 
 const DangerZoneContext = createContext(null);
 
 export const DangerZoneProvider = ({ children }) => {
     const [dangerZones, setDangerZones] = useState([]);
+    const { user } = useAuth() || {};
 
     const fetchDangerZones = async () => {
+        if (!user) return; // Skip API polling when logged out
         try {
             const data = await dangerZoneService.getAllDangerZones({ Page: 1, PageSize: 100 });
             if (data && data.items) {
@@ -25,8 +29,6 @@ export const DangerZoneProvider = ({ children }) => {
                         if (item.approvalStage.id === 1) status = 'pending';
                         if (item.approvalStage.id === 2) status = 'rejected';
                         if (item.approvalStage.id === 3) status = 'approved';
-                    } else if (item.activeStatusId !== undefined && item.activeStatusId !== 1) {
-                        // fallback depending on data if needed
                     }
 
                     return {
@@ -42,7 +44,30 @@ export const DangerZoneProvider = ({ children }) => {
                         rawSeverityId: item.serverityId || 0
                     };
                 });
-                setDangerZones(mappedZones);
+
+                setDangerZones(prevZones => {
+                    const isSubsequent = prevZones.length > 0;
+                    if (isSubsequent) {
+                        mappedZones.forEach(newZone => {
+                            if (!prevZones.some(z => z.id === newZone.id)) {
+                                // Trigger premium notification for new danger zone
+                                notification.warning({
+                                    message: 'New Danger Zone Reported!',
+                                    description: `A new ${newZone.type} zone has been reported at ${newZone.name} (Severity: ${newZone.severity?.toUpperCase()})`,
+                                    placement: 'topRight',
+                                    duration: 6,
+                                    style: {
+                                        borderRadius: '8px',
+                                        boxShadow: '0 4px 15px rgba(250, 173, 20, 0.2)',
+                                        borderLeft: '5px solid #faad14',
+                                        background: '#fffbe6'
+                                    }
+                                });
+                            }
+                        });
+                    }
+                    return mappedZones;
+                });
             }
         } catch (error) {
             console.error("Failed to fetch danger zones:", error);
@@ -51,7 +76,9 @@ export const DangerZoneProvider = ({ children }) => {
 
     useEffect(() => {
         fetchDangerZones();
-    }, []);
+        const intervalId = setInterval(fetchDangerZones, 5000);
+        return () => clearInterval(intervalId);
+    }, [user]);
 
     const approveZone = async (id) => {
         try {

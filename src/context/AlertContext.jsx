@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { getAlerts, sendAlertWebhook } from '../services/alertService';
 import { message } from 'antd';
+import { useAuth } from './AuthContext';
 
 const AlertContext = createContext(null);
 
@@ -36,8 +37,10 @@ const normalizeAlert = (alert) => {
 export const AlertProvider = ({ children }) => {
     const [alerts, setAlerts] = useState([]);
     const [loading, setLoading] = useState(false);
+    const { user } = useAuth() || {};
 
     const fetchAlerts = async () => {
+        if (!user) return; // Skip API polling when logged out
         setLoading(true);
         try {
             const data = await getAlerts();
@@ -58,7 +61,9 @@ export const AlertProvider = ({ children }) => {
 
     useEffect(() => {
         fetchAlerts();
-    }, []);
+        const intervalId = setInterval(fetchAlerts, 5000);
+        return () => clearInterval(intervalId);
+    }, [user]);
 
     // Save alerts to localStorage whenever they change
     useEffect(() => {

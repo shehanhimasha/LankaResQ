@@ -130,6 +130,27 @@ const MainLayout = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                         <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>LankaResQ Admin</h2>
 
+                        <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '8px', 
+                            background: isDarkMode ? '#1f1f1f' : '#f5f5f5', 
+                            padding: '4px 12px', 
+                            borderRadius: '16px',
+                            border: `1px solid ${isDarkMode ? '#303030' : '#d9d9d9'}`,
+                            userSelect: 'none'
+                        }}>
+                            <span style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                background: '#52c41a',
+                                display: 'inline-block',
+                                animation: 'pulse-green 2s infinite'
+                            }} />
+                            <span style={{ fontSize: '12px', color: isDarkMode ? '#a6a6a6' : '#595959', fontWeight: 500 }}>Live Sync</span>
+                        </div>
+
                         <Dropdown
                             menu={{
                                 items: [
