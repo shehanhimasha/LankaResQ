@@ -12,6 +12,7 @@ import Users from '../pages/Users';
 import Settings from '../pages/Settings';
 import Profile from '../pages/Profile';
 import DangerZone from '../pages/DangerZone';
+import RoadClosure from '../pages/RoadClosure';
 
 const AppRoutes = () => {
     return (
@@ -25,6 +26,7 @@ const AppRoutes = () => {
                 <Route path="/family" element={<Family />} />
                 <Route path="/alerts" element={<Alerts />} />
                 <Route path="/danger-zone" element={<DangerZone />} />
+                <Route path="/road-closure" element={<RoadClosure />} />
                 <Route path="/users" element={<Users />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/profile" element={<Profile />} />
