@@ -27,6 +27,7 @@ const Help = () => {
         handleFeedbackSubmit,
         handleComplete,
         showDeleteConfirm,
+        updateRequestStatus,
     } = useHelp();
     const { token: { colorBgContainer } } = theme.useToken();
 
@@ -54,6 +55,7 @@ const Help = () => {
                 handleView={handleView}
                 handleComplete={handleComplete}
                 showDeleteConfirm={showDeleteConfirm}
+                updateRequestStatus={updateRequestStatus}
             />
 
             <HelpDetailsModal 

@@ -1,5 +1,7 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
+import { notification } from 'antd';
 import helpRequestService from '../services/helpRequestService';
+import { useAuth } from './AuthContext';
 
 const RequestContext = createContext(null);
 
@@ -62,8 +64,15 @@ export const RequestProvider = ({ children }) => {
     ]);
 
     const [requests, setRequests] = useState([]);
+    const { user } = useAuth() || {};
+    const requestsRef = useRef(requests);
+
+    useEffect(() => {
+        requestsRef.current = requests;
+    }, [requests]);
 
     const fetchRequests = async () => {
+        if (!user) return; // Skip API polling when logged out
         try {
             const data = await helpRequestService.getAllHelpRequests({ Page: 1, PageSize: 100 });
             if (data && data.items) {
@@ -77,10 +86,68 @@ export const RequestProvider = ({ children }) => {
                     numberOfPeople: item.noOfPeople || 1,
                     moreDetails: item.description || item.note || '',
                     contactNumber: item.helpRequestId || 'N/A', // Using helpRequestId as fallback if the backend doesn't provide contact in GET
-                    status: item.activeStatus?.name?.toLowerCase() || item.approvalStage?.name?.toLowerCase() || 'pending',
+                    status: (() => {
+                        const rawStatus = item.activeStatus?.name?.toLowerCase() || item.approvalStage?.name?.toLowerCase() || 'pending';
+                        return rawStatus === 'active' ? 'pending' : rawStatus;
+                    })(),
+                    feedback: item.feedback || '',
+                    logs: item.logs || [],
                     timestamp: item.createdOn || new Date().toISOString()
                 }));
-                setRequests(mapped);
+
+                const prevRequests = requestsRef.current;
+                const isSubsequent = prevRequests.length > 0;
+                
+                mapped.forEach(newReq => {
+                    const existing = prevRequests.find(r => String(r.id) === String(newReq.id));
+                    if (existing) {
+                        // If reminder count increased, trigger warning notification
+                        if (newReq.reminder > existing.reminder) {
+                            notification.warning({
+                                message: 'Help Reminder Received!',
+                                description: `A reminder was sent for help request from ${newReq.name} (Urgency: ${newReq.urgencyLevel?.toUpperCase()})`,
+                                placement: 'topRight',
+                                duration: 5,
+                                style: {
+                                    borderRadius: '8px',
+                                    boxShadow: '0 4px 15px rgba(250, 173, 20, 0.2)',
+                                    borderLeft: '5px solid #faad14',
+                                    background: '#fffbe6'
+                                }
+                            });
+                        }
+                    } else if (isSubsequent) {
+                        // Brand new emergency help request!
+                        notification.error({
+                            message: '🚨 EMERGENCY REQUEST RECEIVED!',
+                            description: `New request submitted by ${newReq.name} in ${newReq.location} (Urgency: ${newReq.urgencyLevel?.toUpperCase()})`,
+                            placement: 'topRight',
+                            duration: 8,
+                            style: {
+                                borderRadius: '8px',
+                                boxShadow: '0 4px 20px rgba(239, 68, 68, 0.25)',
+                                borderLeft: '5px solid #ff4d4f',
+                                background: '#fff2f0'
+                            }
+                        });
+                    }
+                });
+
+                const nextRequests = mapped.map(newReq => {
+                    const existing = prevRequests.find(r => r.id === newReq.id);
+                    if (existing) {
+                        return {
+                            ...newReq,
+                            status: existing.status,
+                            feedback: existing.feedback,
+                            logs: existing.logs || newReq.logs,
+                            lastRemindedAt: newReq.reminder > existing.reminder ? new Date().toISOString() : existing.lastRemindedAt
+                        };
+                    }
+                    return newReq;
+                });
+                requestsRef.current = nextRequests;
+                setRequests(nextRequests);
             }
         } catch (error) {
             console.error('Failed to fetch help requests', error);
@@ -89,18 +156,28 @@ export const RequestProvider = ({ children }) => {
 
     useEffect(() => {
         fetchRequests();
-    }, []);
+        const intervalId = setInterval(fetchRequests, 5000);
+        return () => clearInterval(intervalId);
+    }, [user]);
 
     const updateSchema = (newSchema) => {
         setFormSchema(newSchema);
     };
 
     const updateRequestStatus = (id, newStatus) => {
-        setRequests(requests => requests.map(req => req.id === id ? { ...req, status: newStatus } : req));
+        setRequests(requests => {
+            const next = requests.map(req => req.id === id ? { ...req, status: newStatus } : req);
+            requestsRef.current = next;
+            return next;
+        });
     };
 
     const updateRequest = (updatedRequest) => {
-        setRequests(requests => requests.map(req => req.id === updatedRequest.id ? updatedRequest : req));
+        setRequests(requests => {
+            const next = requests.map(req => req.id === updatedRequest.id ? updatedRequest : req);
+            requestsRef.current = next;
+            return next;
+        });
     };
 
     const addRequest = async (newRequest) => {
@@ -120,13 +197,21 @@ export const RequestProvider = ({ children }) => {
             fetchRequests(); // Reload list after successful creation
         } catch (error) {
             console.error('Failed to add request to backend, falling back to local state', error);
-            const nextId = requests.length > 0 ? Math.max(...requests.map(r => r.id)) + 1 : 1;
-            setRequests(prev => [...prev, { ...newRequest, id: nextId, status: 'pending', timestamp: new Date().toISOString() }]);
+            const nextId = requestsRef.current.length > 0 ? Math.max(...requestsRef.current.map(r => r.id)) + 1 : 1;
+            setRequests(prev => {
+                const next = [...prev, { ...newRequest, id: nextId, status: 'pending', timestamp: new Date().toISOString() }];
+                requestsRef.current = next;
+                return next;
+            });
         }
     };
 
     const deleteRequest = (id) => {
-        setRequests(requests => requests.filter(req => req.id !== id));
+        setRequests(requests => {
+            const next = requests.filter(req => req.id !== id);
+            requestsRef.current = next;
+            return next;
+        });
     };
 
     return (

@@ -1,6 +1,7 @@
-import React, { createContext, useState, useContext, useRef } from 'react';
+import React, { createContext, useState, useContext, useRef, useEffect } from 'react';
 import { message } from 'antd';
 import { createShelter, getShelters, updateShelter as updateShelterApi, deleteShelter as deleteShelterApi } from '../services/shelterService';
+import { useAuth } from './AuthContext';
 
 const ShelterContext = createContext(null);
 
@@ -9,8 +10,10 @@ export const ShelterProvider = ({ children }) => {
     const [totalShelters, setTotalShelters] = useState(0);
     const [loading, setLoading] = useState(false);
     const hasShownError = useRef(false);
+    const { user } = useAuth() || {};
 
     const fetchShelters = async (params = {}) => {
+        if (!user) return; // Skip API calls when logged out
         setLoading(true);
         try {
             const data = await getShelters(params);
@@ -34,6 +37,12 @@ export const ShelterProvider = ({ children }) => {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchShelters();
+        const intervalId = setInterval(() => fetchShelters(), 10000);
+        return () => clearInterval(intervalId);
+    }, [user]);
 
     const addShelter = async (newShelter) => {
         setLoading(true);

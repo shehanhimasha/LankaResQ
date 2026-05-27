@@ -6,9 +6,9 @@ const useDashboard = () => {
 
     // Statistics calculations
     const totalRequests = requests.length;
-    const pendingRequests = requests.filter(r => r.status === 'pending').length;
+    const pendingRequests = requests.filter(r => r.status === 'pending' || r.status === 'active').length;
     const processingRequests = requests.filter(r => r.status === 'processing').length;
-    const completedRequests = requests.filter(r => r.status === 'success').length;
+    const completedRequests = requests.filter(r => r.status === 'success' || r.status === 'completed').length;
     const delayRequests = requests.filter(r => r.status === 'delay').length;
 
     // Status Data for Pie Chart
@@ -65,9 +65,23 @@ const useDashboard = () => {
     // Sorted Requests for Table
     const sortedRequests = useMemo(() => {
         return [...requests].sort((a, b) => {
-            if (a.status === 'success' && b.status !== 'success') return 1;
-            if (a.status !== 'success' && b.status === 'success') return -1;
-            return 0; // Maintain original order for other statuses
+            const aStatus = a.status === 'active' ? 'pending' : a.status;
+            const bStatus = b.status === 'active' ? 'pending' : b.status;
+            const aCompleted = aStatus === 'success' || aStatus === 'completed';
+            const bCompleted = bStatus === 'success' || bStatus === 'completed';
+            if (aCompleted && !bCompleted) return 1;
+            if (!aCompleted && bCompleted) return -1;
+            
+            // Sort by the latest event time (creation timestamp or last reminder) descending (newest first)
+            const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+            const remindA = a.lastRemindedAt ? new Date(a.lastRemindedAt).getTime() : 0;
+            const activeTimeA = Math.max(timeA, remindA);
+
+            const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+            const remindB = b.lastRemindedAt ? new Date(b.lastRemindedAt).getTime() : 0;
+            const activeTimeB = Math.max(timeB, remindB);
+
+            return activeTimeB - activeTimeA;
         });
     }, [requests]);
 

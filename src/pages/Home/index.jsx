@@ -54,7 +54,6 @@ const Home = () => {
 
             <RecentRequestsTable 
                 sortedRequests={sortedRequests}
-                updateRequestStatus={updateRequestStatus}
             />
         </div>
     );

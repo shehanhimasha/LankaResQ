@@ -1,8 +1,10 @@
 import React from 'react';
-import { Table, Tag, Button, Space, Tooltip } from 'antd';
+import { Table, Tag, Button, Space, Tooltip, Select } from 'antd';
 import { EyeOutlined, CheckOutlined, DeleteOutlined, BellOutlined } from '@ant-design/icons';
 
-const HelpTable = ({ requests, searchQuery, handleView, handleComplete, showDeleteConfirm }) => {
+const { Option } = Select;
+
+const HelpTable = ({ requests, searchQuery, handleView, handleComplete, showDeleteConfirm, updateRequestStatus }) => {
     const columns = [
         {
             title: 'ID',
@@ -77,7 +79,7 @@ const HelpTable = ({ requests, searchQuery, handleView, handleComplete, showDele
             title: 'Status',
             dataIndex: 'status',
             key: 'status',
-            width: 120,
+            width: 150,
             filters: [
                 { text: 'Pending', value: 'pending' },
                 { text: 'Processing', value: 'processing' },
@@ -85,15 +87,27 @@ const HelpTable = ({ requests, searchQuery, handleView, handleComplete, showDele
                 { text: 'Delay', value: 'delay' },
             ],
             onFilter: (value, record) => {
-                if (value === 'success') return record.status === 'success' || record.status === 'completed';
-                return record.status === value;
+                let status = record.status;
+                if (status === 'active') status = 'pending';
+                if (value === 'success') return status === 'success' || status === 'completed';
+                return status === value;
             },
-            render: (status) => {
-                let color = 'processing';
-                if (status === 'pending') color = 'warning';
-                if (status === 'completed' || status === 'success') color = 'success';
-                if (status === 'delay') color = 'error';
-                return <Tag color={color}>{status?.toUpperCase()}</Tag>;
+            render: (status, record) => {
+                let currentStatus = status || 'pending';
+                if (currentStatus === 'success') currentStatus = 'completed';
+                if (currentStatus === 'active') currentStatus = 'pending';
+                return (
+                    <Select
+                        value={currentStatus}
+                        style={{ width: 130 }}
+                        onChange={(value) => updateRequestStatus(record.id, value)}
+                    >
+                        <Option value="pending"><Tag color="warning">PENDING</Tag></Option>
+                        <Option value="processing"><Tag color="processing">PROCESSING</Tag></Option>
+                        <Option value="delay"><Tag color="error">DELAY</Tag></Option>
+                        <Option value="completed"><Tag color="success">COMPLETED</Tag></Option>
+                    </Select>
+                );
             },
         },
         {
@@ -148,15 +162,25 @@ const HelpTable = ({ requests, searchQuery, handleView, handleComplete, showDele
             req.status?.toLowerCase().includes(q) ||
             req.urgencyLevel?.toLowerCase().includes(q);
     }).sort((a, b) => {
-        const aCompleted = a.status === 'success' || a.status === 'completed';
-        const bCompleted = b.status === 'success' || b.status === 'completed';
+        const aStatus = a.status === 'active' ? 'pending' : a.status;
+        const bStatus = b.status === 'active' ? 'pending' : b.status;
+        const aCompleted = aStatus === 'success' || aStatus === 'completed';
+        const bCompleted = bStatus === 'success' || bStatus === 'completed';
+        
+        // Put completed/success requests at the bottom
         if (aCompleted && !bCompleted) return 1;
         if (!aCompleted && bCompleted) return -1;
         
-        // If both have same completion status, sort by newest first
-        const dateA = new Date(a.timestamp || 0);
-        const dateB = new Date(b.timestamp || 0);
-        return dateB - dateA;
+        // Sort by the latest event time (creation timestamp or last reminder) descending (newest first)
+        const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+        const remindA = a.lastRemindedAt ? new Date(a.lastRemindedAt).getTime() : 0;
+        const activeTimeA = Math.max(timeA, remindA);
+
+        const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+        const remindB = b.lastRemindedAt ? new Date(b.lastRemindedAt).getTime() : 0;
+        const activeTimeB = Math.max(timeB, remindB);
+
+        return activeTimeB - activeTimeA;
     });
 
     return (
