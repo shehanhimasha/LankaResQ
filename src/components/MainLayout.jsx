@@ -4,7 +4,6 @@ import {
     HomeOutlined,
     AppstoreOutlined,
     QuestionCircleOutlined,
-    TeamOutlined,
     AlertOutlined,
     UserOutlined,
     SettingOutlined,
@@ -14,7 +13,8 @@ import {
     SunOutlined,
     MoonOutlined,
     BellOutlined,
-    WarningOutlined
+    WarningOutlined,
+    StopOutlined
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -53,11 +53,6 @@ const MainLayout = () => {
             label: 'Help',
         },
         {
-            key: '/family',
-            icon: <TeamOutlined />,
-            label: 'Family',
-        },
-        {
             key: '/alerts',
             icon: <AlertOutlined />,
             label: 'Alerts',
@@ -66,6 +61,11 @@ const MainLayout = () => {
             key: '/danger-zone',
             icon: <WarningOutlined />,
             label: 'Danger Zone',
+        },
+        {
+            key: '/road-closure',
+            icon: <StopOutlined />,
+            label: 'Road Closure',
         },
         (user?.role === 'Admin' || user?.role === 'admin' || user?.role === 'Co-Admin' || user?.role === 'co-admin') && {
             key: '/users',
@@ -130,12 +130,12 @@ const MainLayout = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                         <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>LankaResQ Admin</h2>
 
-                        <div style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: '8px', 
-                            background: isDarkMode ? '#1f1f1f' : '#f5f5f5', 
-                            padding: '4px 12px', 
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            background: isDarkMode ? '#1f1f1f' : '#f5f5f5',
+                            padding: '4px 12px',
                             borderRadius: '16px',
                             border: `1px solid ${isDarkMode ? '#303030' : '#d9d9d9'}`,
                             userSelect: 'none'

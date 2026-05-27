@@ -23,7 +23,7 @@ export const ShelterProvider = ({ children }) => {
             const sortedItems = [...items].sort((a, b) => b.id - a.id);
             setShelters(sortedItems);
             setTotalShelters(data?.total ?? sortedItems.length);
-            
+
             if (!Array.isArray(items)) {
                 console.warn('Shelters API did not return an array:', data);
             }
@@ -40,8 +40,6 @@ export const ShelterProvider = ({ children }) => {
 
     useEffect(() => {
         fetchShelters();
-        const intervalId = setInterval(() => fetchShelters(), 10000);
-        return () => clearInterval(intervalId);
     }, [user]);
 
     const addShelter = async (newShelter) => {
@@ -55,7 +53,7 @@ export const ShelterProvider = ({ children }) => {
             console.error('Error creating shelter:', error);
             const errorData = error.response?.data;
             let errorMsg = 'Failed to create shelter';
-            
+
             if (errorData?.message) {
                 errorMsg = errorData.message;
             } else if (errorData?.errors) {
@@ -65,7 +63,7 @@ export const ShelterProvider = ({ children }) => {
             } else if (typeof errorData === 'string') {
                 errorMsg = errorData;
             }
-            
+
             message.error(errorMsg);
             return false;
         } finally {

@@ -220,7 +220,7 @@ const Users = () => {
                     if (isCurrentUserSuperAdmin) {
                         // Super Admin can delete Admin (assuming they can also delete other Super Admins or not, but requirement says "both admin and users")
                         // We will allow Super Admins to delete anyone for now, or just disable if target is Super Admin to be safe
-                        canShowDelete = true; 
+                        canShowDelete = true;
                     } else if (isCurrentUserAdmin) {
                         // Admin can delete, but NOT super admins
                         canShowDelete = !isTargetSuperAdmin;
@@ -500,12 +500,30 @@ const Users = () => {
                                 <div style={{ marginBottom: '16px' }}>
                                     <Typography.Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Safety Status</Typography.Text>
                                     {viewingUser.isSafe === true ? (
-                                        <Tag color="success" style={{ margin: 0 }}>YES</Tag>
+                                        <Tag color="success" style={{ margin: 0 }}>SAFE</Tag>
                                     ) : viewingUser.isSafe === false ? (
-                                        <Tag color="error" style={{ margin: 0 }}>NO</Tag>
+                                        <Tag color="error" style={{ margin: 0 }}>NOT SAFE</Tag>
                                     ) : (
                                         <Tag color="default" style={{ margin: 0 }}>UNKNOWN</Tag>
                                     )}
+                                </div>
+                                <div style={{ marginBottom: '16px' }}>
+                                    <Typography.Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Verified</Typography.Text>
+                                    {viewingUser.isVerified === true ? (
+                                        <Tag color="blue" style={{ margin: 0 }}>VERIFIED</Tag>
+                                    ) : (
+                                        <Tag color="warning" style={{ margin: 0 }}>UNVERIFIED</Tag>
+                                    )}
+                                </div>
+                                <div style={{ marginBottom: '16px' }}>
+                                    <Typography.Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Created On</Typography.Text>
+                                    <Typography.Text strong style={{ fontSize: '15px' }}>
+                                        {viewingUser.createdOn
+                                            ? new Date(viewingUser.createdOn).toLocaleString()
+                                            : viewingUser.createdAt
+                                                ? new Date(viewingUser.createdAt).toLocaleString()
+                                                : '—'}
+                                    </Typography.Text>
                                 </div>
                             </Col>
 
@@ -520,43 +538,9 @@ const Users = () => {
                                 </div>
                                 <div style={{ marginBottom: '16px' }}>
                                     <Typography.Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Current Location</Typography.Text>
-                                    {(() => {
-                                        const coords = parseCoordinates(viewingUser.currentLocation);
-                                        if (coords) {
-                                            return (
-                                                <a 
-                                                    style={{ 
-                                                        fontSize: '15px', 
-                                                        fontWeight: 'bold', 
-                                                        color: '#1890ff', 
-                                                        cursor: 'pointer',
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        gap: '4px'
-                                                    }}
-                                                    onClick={() => {
-                                                        setIsViewModalVisible(false);
-                                                        const fullName = `${viewingUser.firstName || viewingUser.name?.split(' ')[0] || ''} ${viewingUser.lastName || viewingUser.name?.split(' ').slice(1).join(' ') || ''}`.trim() || 'User';
-                                                        navigate('/danger-zone', { 
-                                                            state: { 
-                                                                center: [coords.lat, coords.lng],
-                                                                userName: fullName
-                                                            } 
-                                                        });
-                                                    }}
-                                                >
-                                                    <EnvironmentOutlined />
-                                                    {viewingUser.currentLocation}
-                                                </a>
-                                            );
-                                        }
-                                        return (
-                                            <Typography.Text strong style={{ fontSize: '15px' }}>
-                                                {viewingUser.currentLocation || '—'}
-                                            </Typography.Text>
-                                        );
-                                    })()}
+                                    <Typography.Text strong style={{ fontSize: '15px' }}>{viewingUser.currentLocation || '—'}</Typography.Text>
                                 </div>
+
                                 <div style={{ marginBottom: '16px' }}>
                                     <Typography.Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Updated At</Typography.Text>
                                     <Typography.Text strong style={{ fontSize: '15px' }}>

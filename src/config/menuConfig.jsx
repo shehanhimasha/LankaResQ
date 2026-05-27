@@ -3,11 +3,11 @@ import {
     HomeOutlined,
     AppstoreOutlined,
     QuestionCircleOutlined,
-    TeamOutlined,
     AlertOutlined,
     UserOutlined,
     SettingOutlined,
-    WarningOutlined
+    WarningOutlined,
+    StopOutlined
 } from '@ant-design/icons';
 
 export const menuItems = [
@@ -27,11 +27,6 @@ export const menuItems = [
         label: 'Help',
     },
     {
-        key: '/family',
-        icon: <TeamOutlined />,
-        label: 'Family',
-    },
-    {
         key: '/alerts',
         icon: <AlertOutlined />,
         label: 'Alerts',
@@ -43,7 +38,7 @@ export const menuItems = [
     },
     {
         key: '/road-closure',
-        icon: <WarningOutlined />, // Using WarningOutlined for now or I can find a better one
+        icon: <StopOutlined />,
         label: 'Road Closure',
     },
     {
