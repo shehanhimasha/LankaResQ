@@ -42,6 +42,11 @@ export const menuItems = [
         label: 'Danger Zone',
     },
     {
+        key: '/road-closure',
+        icon: <WarningOutlined />, // Using WarningOutlined for now or I can find a better one
+        label: 'Road Closure',
+    },
+    {
         key: '/users',
         icon: <UserOutlined />,
         label: 'Users',
