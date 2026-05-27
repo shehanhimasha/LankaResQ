@@ -7,16 +7,23 @@ const { Sider } = Layout;
 
 const Sidebar = ({ collapsed, setCollapsed, location, handleMenuClick }) => {
     return (
-        <Sider 
-            trigger={null} 
-            collapsible 
-            collapsed={collapsed} 
-            breakpoint="lg" 
+        <Sider
+            trigger={null}
+            collapsible
+            collapsed={collapsed}
+            breakpoint="lg"
             onBreakpoint={(broken) => {
                 if (broken) setCollapsed(true);
             }}
             style={{
                 background: '#D32F2F',
+                overflow: 'auto',
+                height: '100vh',
+                position: 'fixed',
+                left: 0,
+                top: 0,
+                bottom: 0,
+                zIndex: 100,
             }}
         >
             <div className="demo-logo-vertical" style={{

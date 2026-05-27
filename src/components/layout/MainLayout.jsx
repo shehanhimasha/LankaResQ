@@ -27,22 +27,22 @@ const MainLayout = () => {
 
     return (
         <Layout style={{ minHeight: '100vh' }}>
-            <Sidebar 
-                collapsed={collapsed} 
-                setCollapsed={setCollapsed} 
-                location={location} 
-                handleMenuClick={handleMenuClick} 
+            <Sidebar
+                collapsed={collapsed}
+                setCollapsed={setCollapsed}
+                location={location}
+                handleMenuClick={handleMenuClick}
             />
-            <Layout>
-                <HeaderBar 
-                    collapsed={collapsed} 
-                    setCollapsed={setCollapsed} 
-                    isDarkMode={isDarkMode} 
-                    toggleTheme={toggleTheme} 
+            <Layout style={{ marginLeft: collapsed ? 80 : 200, transition: 'all 0.2s', minHeight: '100vh' }}>
+                <HeaderBar
+                    collapsed={collapsed}
+                    setCollapsed={setCollapsed}
+                    isDarkMode={isDarkMode}
+                    toggleTheme={toggleTheme}
                     notifications={notifications}
-                    unreadCount={unreadCount} 
-                    navigate={navigate} 
-                    handleLogout={handleLogout} 
+                    unreadCount={unreadCount}
+                    navigate={navigate}
+                    handleLogout={handleLogout}
                 />
                 <Content
                     style={{

@@ -9,7 +9,7 @@ const normalizeAlert = (alert) => {
     // The backend uses flattened camelCase properties:
     // id, alertId, severityLevel, eventType, title, shortMessage, detailedMessage, 
     // recommendedActions, areaName, district, waterLevel, rainfall, confidence, issuedAt
-    
+
     return {
         ...alert,
         id: alert.id || alert.alertId || alert.alert_id || alert.AlertId,
@@ -61,8 +61,6 @@ export const AlertProvider = ({ children }) => {
 
     useEffect(() => {
         fetchAlerts();
-        const intervalId = setInterval(fetchAlerts, 5000);
-        return () => clearInterval(intervalId);
     }, [user]);
 
     // Save alerts to localStorage whenever they change
@@ -82,11 +80,11 @@ export const AlertProvider = ({ children }) => {
             };
 
             await sendAlertWebhook(fullAlertData);
-            
+
             // Add to local list
             const newAlert = normalizeAlert(fullAlertData);
             setAlerts(prev => [newAlert, ...prev]);
-            
+
             message.success('Alert sent successfully to disaster management system');
             return true;
         } catch (error) {
