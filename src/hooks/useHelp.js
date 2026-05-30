@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Form, message, Modal } from 'antd';
 import { useRequest } from '../context/RequestContext';
 import { useAuth } from '../context/AuthContext';
+import helpRequestService from '../services/helpRequestService';
 
 const useHelp = () => {
     const { requests, updateRequestStatus, updateRequest, deleteRequest, addRequest } = useRequest();
@@ -73,7 +74,7 @@ const useHelp = () => {
         }, 300);
     };
 
-    const handleFeedbackSubmit = () => {
+    const handleFeedbackSubmit = async () => {
         if (!feedbackText.trim()) {
             message.error('Please enter feedback.');
             return;
@@ -85,7 +86,7 @@ const useHelp = () => {
         const updatedRecord = {
             ...selectedRequest,
             feedback: feedbackText,
-            status: 'processing',
+            status: 'in progress',
         };
 
         if (!updatedRecord.logs) {
@@ -99,6 +100,17 @@ const useHelp = () => {
                 adminName: currentUserName,
                 adminEmail: currentUserEmail // Added
             });
+
+            try {
+                // Send feedback as note to the API, and change status id (4 = in progress)
+                await helpRequestService.updateHelpRequest(selectedRequest.id, {
+                    note: feedbackText,
+                    approvalStageId: 4
+                });
+            } catch (error) {
+                console.error("Failed saving feedback to db:", error);
+                message.error('Failed to save feedback to server');
+            }
         }
 
         updateRequest(updatedRecord);
