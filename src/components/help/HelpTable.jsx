@@ -82,29 +82,27 @@ const HelpTable = ({ requests, searchQuery, handleView, handleComplete, showDele
             width: 150,
             filters: [
                 { text: 'Pending', value: 'pending' },
-                { text: 'Processing', value: 'processing' },
-                { text: 'Completed', value: 'success' },
-                { text: 'Delay', value: 'delay' },
+                { text: 'Rejected', value: 'rejected' },
+                { text: 'Approved', value: 'approved' },
+                { text: 'In Progress', value: 'in progress' },
+                { text: 'Completed', value: 'completed' },
             ],
             onFilter: (value, record) => {
-                let status = record.status;
-                if (status === 'active') status = 'pending';
-                if (value === 'success') return status === 'success' || status === 'completed';
+                let status = record.status || 'pending';
                 return status === value;
             },
             render: (status, record) => {
                 let currentStatus = status || 'pending';
-                if (currentStatus === 'success') currentStatus = 'completed';
-                if (currentStatus === 'active') currentStatus = 'pending';
                 return (
                     <Select
                         value={currentStatus}
-                        style={{ width: 130 }}
+                        style={{ width: 140 }}
                         onChange={(value) => updateRequestStatus(record.id, value)}
                     >
                         <Option value="pending"><Tag color="warning">PENDING</Tag></Option>
-                        <Option value="processing"><Tag color="processing">PROCESSING</Tag></Option>
-                        <Option value="delay"><Tag color="error">DELAY</Tag></Option>
+                        <Option value="in progress"><Tag color="processing">IN PROGRESS</Tag></Option>
+                        <Option value="approved"><Tag color="lime">APPROVED</Tag></Option>
+                        <Option value="rejected"><Tag color="error">REJECTED</Tag></Option>
                         <Option value="completed"><Tag color="success">COMPLETED</Tag></Option>
                     </Select>
                 );
@@ -126,7 +124,7 @@ const HelpTable = ({ requests, searchQuery, handleView, handleComplete, showDele
                         />
                     </Tooltip>
 
-                    {record.status !== 'success' && record.status !== 'completed' && (
+                    {record.status !== 'completed' && (
                         <Tooltip title="Mark as Completed">
                             <Button
                                 type="default"
@@ -162,15 +160,13 @@ const HelpTable = ({ requests, searchQuery, handleView, handleComplete, showDele
             req.status?.toLowerCase().includes(q) ||
             req.urgencyLevel?.toLowerCase().includes(q);
     }).sort((a, b) => {
-        const aStatus = a.status === 'active' ? 'pending' : a.status;
-        const bStatus = b.status === 'active' ? 'pending' : b.status;
-        const aCompleted = aStatus === 'success' || aStatus === 'completed';
-        const bCompleted = bStatus === 'success' || bStatus === 'completed';
-        
-        // Put completed/success requests at the bottom
+        const aCompleted = a.status === 'completed';
+        const bCompleted = b.status === 'completed';
+
+        // Put completed requests at the bottom
         if (aCompleted && !bCompleted) return 1;
         if (!aCompleted && bCompleted) return -1;
-        
+
         // Sort by the latest event time (creation timestamp or last reminder) descending (newest first)
         const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
         const remindA = a.lastRemindedAt ? new Date(a.lastRemindedAt).getTime() : 0;

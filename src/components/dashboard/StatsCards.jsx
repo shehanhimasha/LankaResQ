@@ -1,7 +1,7 @@
 import React from 'react';
 import { Row, Col, Card, Statistic } from 'antd';
 
-const StatsCards = ({ totalRequests, pendingRequests, processingRequests, completedRequests }) => {
+const StatsCards = ({ totalRequests, pendingRequests, inProgressRequests, completedRequests }) => {
     return (
         <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
             <Col xs={24} sm={12} lg={6}>
@@ -16,7 +16,7 @@ const StatsCards = ({ totalRequests, pendingRequests, processingRequests, comple
             </Col>
             <Col xs={24} sm={12} lg={6}>
                 <Card bordered={false} style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
-                    <Statistic title="Processing" value={processingRequests} valueStyle={{ color: '#6366f1' }} />
+                    <Statistic title="In Progress" value={inProgressRequests} valueStyle={{ color: '#3b82f6' }} />
                 </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>

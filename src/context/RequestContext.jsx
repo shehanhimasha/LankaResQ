@@ -81,23 +81,37 @@ export const RequestProvider = ({ children }) => {
                     name: item.name || 'Unknown',
                     location: item.location || 'Unknown',
                     reminder: item.remindedCount || 0,
-                    emergencyType: item.emergencyType?.description ? [item.emergencyType.description.toLowerCase()] : [],
+                    emergencyType: (() => {
+                        const id = item.emergencyType?.id || item.emergencyTypeId;
+                        if (id === 1) return ['rescue'];
+                        if (id === 2) return ['food'];
+                        if (id === 3) return ['shelter'];
+                        if (id === 4) return ['medical'];
+                        // Fallback: try reading description
+                        if (item.emergencyType?.description) return [item.emergencyType.description.toLowerCase()];
+                        return [];
+                    })(),
                     urgencyLevel: item.ugrencyLevel?.name?.toLowerCase() || item.urgencyLevel?.name?.toLowerCase() || 'medium',
                     numberOfPeople: item.noOfPeople || 1,
                     moreDetails: item.description || item.note || '',
                     contactNumber: item.helpRequestId || 'N/A', // Using helpRequestId as fallback if the backend doesn't provide contact in GET
                     status: (() => {
-                        const rawStatus = item.activeStatus?.name?.toLowerCase() || item.approvalStage?.name?.toLowerCase() || 'pending';
-                        return rawStatus === 'active' ? 'pending' : rawStatus;
+                        const rawStatus = item.approvalStage?.id || item.approvalStageId;
+                        if (rawStatus === 1) return 'pending';
+                        if (rawStatus === 2) return 'rejected';
+                        if (rawStatus === 3) return 'approved';
+                        if (rawStatus === 4) return 'in progress';
+                        if (rawStatus === 5) return 'completed';
+                        return 'pending';
                     })(),
-                    feedback: item.feedback || '',
+                    feedback: item.note || item.feedback || '',
                     logs: item.logs || [],
                     timestamp: item.createdOn || new Date().toISOString()
                 }));
 
                 const prevRequests = requestsRef.current;
                 const isSubsequent = prevRequests.length > 0;
-                
+
                 mapped.forEach(newReq => {
                     const existing = prevRequests.find(r => String(r.id) === String(newReq.id));
                     if (existing) {
@@ -164,12 +178,30 @@ export const RequestProvider = ({ children }) => {
         setFormSchema(newSchema);
     };
 
-    const updateRequestStatus = (id, newStatus) => {
+    const updateRequestStatus = async (id, newStatus) => {
+        let stageId = 1;
+        if (newStatus === 'pending') stageId = 1;
+        else if (newStatus === 'rejected') stageId = 2;
+        else if (newStatus === 'approved') stageId = 3;
+        else if (newStatus === 'in progress') stageId = 4;
+        else if (newStatus === 'completed') stageId = 5;
+
+        // Optimistically update UI
         setRequests(requests => {
             const next = requests.map(req => req.id === id ? { ...req, status: newStatus } : req);
             requestsRef.current = next;
             return next;
         });
+
+        try {
+            await helpRequestService.updateHelpRequest(id, { approvalStageId: stageId });
+            notification.success({ message: 'Status successfully updated!' });
+        } catch (error) {
+            console.error('Failed to update status on backend', error);
+            notification.error({ message: 'Failed to update status' });
+            // Revert on error
+            fetchRequests();
+        }
     };
 
     const updateRequest = (updatedRequest) => {
@@ -188,7 +220,28 @@ export const RequestProvider = ({ children }) => {
                 location: newRequest.location,
                 description: newRequest.moreDetails,
                 noOfPeople: newRequest.numberOfPeople ? parseInt(newRequest.numberOfPeople) : 1,
-                emergencyTypeId: 1, // Fallback if not specified in UI appropriately
+                emergencyTypeId: (() => {
+                    const et = newRequest.emergencyType;
+                    if (et === 1 || et === '1') return 1;
+                    if (et === 2 || et === '2') return 2;
+                    if (et === 3 || et === '3') return 3;
+                    if (et === 4 || et === '4') return 4;
+                    // String fallback
+                    if (typeof et === 'string') {
+                        if (et.toLowerCase() === 'rescue') return 1;
+                        if (et.toLowerCase() === 'food') return 2;
+                        if (et.toLowerCase() === 'shelter') return 3;
+                        if (et.toLowerCase() === 'medical') return 4;
+                    }
+                    if (Array.isArray(et) && et.length > 0) {
+                        const first = et[0];
+                        if (first === 1 || first === '1' || first === 'rescue') return 1;
+                        if (first === 2 || first === '2' || first === 'food') return 2;
+                        if (first === 3 || first === '3' || first === 'shelter') return 3;
+                        if (first === 4 || first === '4' || first === 'medical') return 4;
+                    }
+                    return 1; // default to rescue
+                })(),
                 ugrencyLevelId: newRequest.urgencyLevel === 'high' ? 3 : newRequest.urgencyLevel === 'medium' ? 2 : 1,
                 latitude: 0,
                 longitude: 0

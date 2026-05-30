@@ -18,6 +18,15 @@ export const helpRequestService = {
             console.error('Error creating help request:', error);
             throw error;
         }
+    },
+    updateHelpRequest: async (id, data) => {
+        try {
+            const response = await api.put(`/helprequests/${id}`, data);
+            return response.data;
+        } catch (error) {
+            console.error(`Error updating help request ${id}:`, error);
+            throw error;
+        }
     }
 };
 
