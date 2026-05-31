@@ -1,4 +1,5 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useMemo } from 'react';
+import PropTypes from 'prop-types';
 import api from '../services/api';
 
 // Context to hold the authentication state
@@ -18,6 +19,34 @@ const normalizeUserRecord = (user) => {
         contact: user.mobileNumber || user.contact || '',
         joinedDate: user.joinedDate || (user.createdOn ? new Date(user.createdOn).toISOString().split('T')[0] : ''),
     };
+};
+
+const allowedRoleIds = new Set([1, 2, 3]);
+const allowedRoleNames = new Set(['admin', 'super admin', 'co-admin']);
+
+const isAllowedAdminRole = (userData) => {
+    if (!userData) return false;
+
+    if (userData.roleId != null) {
+        return allowedRoleIds.has(userData.roleId);
+    }
+
+    if (userData.role) {
+        const roleName = typeof userData.role === 'object' ? userData.role.name : userData.role;
+        return allowedRoleNames.has((roleName || '').toLowerCase());
+    }
+
+    return false;
+};
+
+const getApiErrorMessage = (error, fallbackMessage) => {
+    const message =
+        error.response?.data?.message ||
+        error.response?.data?.title ||
+        error.response?.data ||
+        fallbackMessage;
+
+    return typeof message === 'string' ? message : fallbackMessage;
 };
 
 export const AuthProvider = ({ children }) => {
@@ -58,15 +87,33 @@ export const AuthProvider = ({ children }) => {
         return await fetchRemoteUsers(params);
     };
 
+    const persistSession = async (userData) => {
+        localStorage.setItem('user', JSON.stringify(userData));
+        setUser(userData);
+        await fetchRemoteUsers();
+    };
+
     useEffect(() => {
         const init = async () => {
             // Restore logged-in user session from localStorage
             const storedUser = localStorage.getItem('user');
+            const authToken = localStorage.getItem('authToken');
+
+            let hasSessionToken = Boolean(authToken);
             if (storedUser) {
-                setUser(JSON.parse(storedUser));
+                try {
+                    const parsedUser = JSON.parse(storedUser);
+                    setUser(parsedUser);
+                    hasSessionToken = hasSessionToken || Boolean(parsedUser?.token || parsedUser?.accessToken);
+                } catch {
+                    localStorage.removeItem('user');
+                }
             }
-            // Fetch users from backend (will silently fail if not authenticated yet)
-            await fetchRemoteUsers();
+
+            // Avoid calling protected /users endpoint until a token is available.
+            if (hasSessionToken) {
+                await fetchRemoteUsers();
+            }
             setLoading(false);
         };
 
@@ -83,42 +130,51 @@ export const AuthProvider = ({ children }) => {
 
             const userData = response.data;
 
-            // Check if user has an allowed role for the admin panel
-            // LoginResponse returns roleId (int). Common mapping: 1=Admin, 2=SuperAdmin, 3=Co-Admin, 4=User
-            // Also handle cases where role might be a string or object from other endpoints
-            const allowedRoleIds = [1, 2, 3]; // Admin, Super Admin, Co-Admin
-            const allowedRoleNames = ['admin', 'super admin', 'co-admin'];
-
-            let isAllowed = false;
-            if (userData.roleId != null) {
-                isAllowed = allowedRoleIds.includes(userData.roleId);
-            }
-            if (!isAllowed && userData.role) {
-                const roleName = typeof userData.role === 'object' ? userData.role.name : userData.role;
-                isAllowed = allowedRoleNames.includes((roleName || '').toLowerCase());
-            }
-
-            if (!isAllowed) {
+            if (!isAllowedAdminRole(userData)) {
                 throw new Error('Access denied. Only Admin and Super Admin users can log in.');
             }
 
-            // Persist session (including token) in localStorage
-            localStorage.setItem('user', JSON.stringify(userData));
-            setUser(userData);
-
-            // Now that we're authenticated, fetch the users list
-            await fetchRemoteUsers();
+            await persistSession(userData);
 
             return userData;
         } catch (error) {
             // Re-throw custom errors (e.g. role check) without overwriting the message
             if (!error.response) throw error;
-            const message =
-                error.response?.data?.message ||
-                error.response?.data?.title ||
-                error.response?.data ||
-                'Invalid email or password';
-            throw new Error(typeof message === 'string' ? message : 'Login failed');
+            throw new Error(getApiErrorMessage(error, 'Login failed'));
+        }
+    };
+
+    const googleLogin = async (idToken) => {
+        try {
+            const response = await api.post('/auth/google-login', { idToken });
+            const userData = response.data;
+
+            if (!isAllowedAdminRole(userData)) {
+                throw new Error('Access denied. Only Admin and Super Admin users can log in.');
+            }
+
+            await persistSession(userData);
+            return userData;
+        } catch (error) {
+            if (!error.response) throw error;
+            throw new Error(getApiErrorMessage(error, 'Google login failed'));
+        }
+    };
+
+    const googleRegister = async (idToken) => {
+        try {
+            const response = await api.post('/auth/google-register', { idToken });
+            const userData = response.data;
+
+            if (!isAllowedAdminRole(userData)) {
+                throw new Error('Google account is registered, but this admin panel allows only Admin and Super Admin roles.');
+            }
+
+            await persistSession(userData);
+            return userData;
+        } catch (error) {
+            if (!error.response) throw error;
+            throw new Error(getApiErrorMessage(error, 'Google register failed'));
         }
     };
 
@@ -220,11 +276,37 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('user');
     };
 
+    const contextValue = useMemo(() => ({
+        user,
+        login,
+        googleLogin,
+        googleRegister,
+        logout,
+        updateProfile,
+        usersDb,
+        totalUsers,
+        addUser,
+        registerUser,
+        updateUserDb,
+        deleteUserDb,
+        refreshUsers,
+        loading,
+    }), [
+        user,
+        usersDb,
+        totalUsers,
+        loading,
+    ]);
+
     return (
-        <AuthContext.Provider value={{ user, login, logout, updateProfile, usersDb, totalUsers, addUser, registerUser, updateUserDb, deleteUserDb, refreshUsers, loading }}>
+        <AuthContext.Provider value={contextValue}>
             {children}
         </AuthContext.Provider>
     );
+};
+
+AuthProvider.propTypes = {
+    children: PropTypes.node.isRequired,
 };
 
 // Custom hook to easily use the AuthContext
