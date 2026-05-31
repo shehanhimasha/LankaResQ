@@ -508,14 +508,6 @@ const Users = () => {
                                     )}
                                 </div>
                                 <div style={{ marginBottom: '16px' }}>
-                                    <Typography.Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Verified</Typography.Text>
-                                    {viewingUser.isVerified === true ? (
-                                        <Tag color="blue" style={{ margin: 0 }}>VERIFIED</Tag>
-                                    ) : (
-                                        <Tag color="warning" style={{ margin: 0 }}>UNVERIFIED</Tag>
-                                    )}
-                                </div>
-                                <div style={{ marginBottom: '16px' }}>
                                     <Typography.Text type="secondary" style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Created On</Typography.Text>
                                     <Typography.Text strong style={{ fontSize: '15px' }}>
                                         {viewingUser.createdOn
