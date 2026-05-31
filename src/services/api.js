@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL || 'http://disastermgtpro.runasp.net',
+    baseURL: import.meta.env.VITE_API_BASE_URL || 'https://lankaresq-api.onrender.com',
     headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
