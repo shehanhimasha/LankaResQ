@@ -46,9 +46,4 @@ export const menuItems = [
         icon: <UserOutlined />,
         label: 'Users',
     },
-    {
-        key: '/settings',
-        icon: <SettingOutlined />,
-        label: 'Settings',
-    },
 ];

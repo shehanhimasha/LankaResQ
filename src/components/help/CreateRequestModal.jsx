@@ -37,14 +37,12 @@ const CreateRequestModal = ({
                 </Row>
                 <Row gutter={16}>
                     <Col span={12}>
-                        <Form.Item name="emergencyType" label="Type of Emergency" rules={[{ required: true, message: 'Please select at least one type' }]}>
-                            <Select mode="multiple" placeholder="E.g. Medical, Flood">
-                                <Option value="medical">Medical</Option>
-                                <Option value="flood">Flood</Option>
-                                <Option value="fire">Fire</Option>
-                                <Option value="rescue">Rescue</Option>
-                                <Option value="food">Food</Option>
-                                <Option value="shelter">Shelter</Option>
+                        <Form.Item name="emergencyType" label="Type of Emergency" rules={[{ required: true, message: 'Please select a type' }]}>
+                            <Select placeholder="Select type">
+                                <Option value={1}>Rescue</Option>
+                                <Option value={2}>Food</Option>
+                                <Option value={3}>Shelter</Option>
+                                <Option value={4}>Medical</Option>
                             </Select>
                         </Form.Item>
                     </Col>

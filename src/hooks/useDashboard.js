@@ -7,58 +7,75 @@ const useDashboard = () => {
     // Statistics calculations
     const totalRequests = requests.length;
     const pendingRequests = requests.filter(r => r.status === 'pending' || r.status === 'active').length;
-    const processingRequests = requests.filter(r => r.status === 'processing').length;
+    const inProgressRequests = requests.filter(r => r.status === 'in progress').length;
     const completedRequests = requests.filter(r => r.status === 'success' || r.status === 'completed').length;
-    const delayRequests = requests.filter(r => r.status === 'delay').length;
+
+    const delayRequests = requests.filter(r => r.status === 'delay' || r.status === 'rejected').length;
 
     // Status Data for Pie Chart
     const statusData = [
         { name: 'Pending', value: pendingRequests, color: '#f59e0b' },
-        { name: 'Processing', value: processingRequests, color: '#6366f1' },
+        { name: 'In Progress', value: inProgressRequests, color: '#3b82f6' },
         { name: 'Success', value: completedRequests, color: '#10b981' },
-        { name: 'Delay', value: delayRequests, color: '#ef4444' },
+        { name: 'Rejected', value: delayRequests, color: '#ef4444' },
     ].filter(d => d.value > 0);
 
     const [selectedMonth, setSelectedMonth] = useState('All');
 
-    // Chart Data Generation (Last 12 Months mock data logic)
+    // Build real last-12-months chart data from actual request timestamps
     const last12MonthsData = useMemo(() => {
-        const months = [];
         const today = new Date();
+        const months = [];
         for (let i = 11; i >= 0; i--) {
-            const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
-            const monthName = date.toLocaleString('default', { month: 'short' });
+            const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
             months.push({
-                name: monthName,
-                requests: Math.floor(Math.random() * 15) + 5
-            });
-        }
-        return months;
-    }, []);
-
-    const filteredChartData = useMemo(() => {
-        if (selectedMonth === 'All') return last12MonthsData;
-
-        const selectedMonthData = last12MonthsData.find(d => d.name === selectedMonth);
-        const monthlyTotal = selectedMonthData ? selectedMonthData.requests : 0;
-
-        const days = [];
-        const daysInMonth = 30;
-
-        for (let i = 1; i <= daysInMonth; i++) {
-            days.push({
-                name: `${i} ${selectedMonth}`,
+                year: d.getFullYear(),
+                month: d.getMonth(),       // 0-indexed
+                name: d.toLocaleString('default', { month: 'short' }),
                 requests: 0
             });
         }
+        requests.forEach(req => {
+            if (!req.timestamp) return;
+            const ts = new Date(req.timestamp);
+            const bucket = months.find(m => m.year === ts.getFullYear() && m.month === ts.getMonth());
+            if (bucket) bucket.requests += 1;
+        });
+        return months.map(({ name, requests }) => ({ name, requests }));
+    }, [requests]);
 
-        for (let i = 0; i < monthlyTotal; i++) {
-            const randomDayIndex = Math.floor(Math.random() * daysInMonth);
-            days[randomDayIndex].requests += 1;
+    // For a specific month selected: break down by day
+    const filteredChartData = useMemo(() => {
+        if (selectedMonth === 'All') return last12MonthsData;
+
+        // Find which year+month this label belongs to (most recent match)
+        const today = new Date();
+        let targetYear = today.getFullYear();
+        let targetMonth = -1;
+        for (let i = 11; i >= 0; i--) {
+            const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+            if (d.toLocaleString('default', { month: 'short' }) === selectedMonth) {
+                targetYear = d.getFullYear();
+                targetMonth = d.getMonth();
+            }
         }
 
+        const daysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+        const days = Array.from({ length: daysInMonth }, (_, i) => ({
+            name: `${i + 1} ${selectedMonth}`,
+            requests: 0
+        }));
+
+        requests.forEach(req => {
+            if (!req.timestamp) return;
+            const ts = new Date(req.timestamp);
+            if (ts.getFullYear() === targetYear && ts.getMonth() === targetMonth) {
+                days[ts.getDate() - 1].requests += 1;
+            }
+        });
+
         return days;
-    }, [selectedMonth, last12MonthsData]);
+    }, [selectedMonth, last12MonthsData, requests]);
 
     const monthOptions = last12MonthsData.map(d => d.name);
 
@@ -71,7 +88,7 @@ const useDashboard = () => {
             const bCompleted = bStatus === 'success' || bStatus === 'completed';
             if (aCompleted && !bCompleted) return 1;
             if (!aCompleted && bCompleted) return -1;
-            
+
             // Sort by the latest event time (creation timestamp or last reminder) descending (newest first)
             const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
             const remindA = a.lastRemindedAt ? new Date(a.lastRemindedAt).getTime() : 0;
@@ -88,7 +105,7 @@ const useDashboard = () => {
     return {
         totalRequests,
         pendingRequests,
-        processingRequests,
+        inProgressRequests,
         completedRequests,
         statusData,
         selectedMonth,

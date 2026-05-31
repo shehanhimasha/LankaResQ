@@ -12,15 +12,15 @@ import UserDropdown from './UserDropdown';
 const { Header } = Layout;
 const { Text } = Typography;
 
-const HeaderBar = ({ 
-    collapsed, 
-    setCollapsed, 
-    isDarkMode, 
-    toggleTheme, 
+const HeaderBar = ({
+    collapsed,
+    setCollapsed,
+    isDarkMode,
+    toggleTheme,
     notifications,
-    unreadCount, 
-    navigate, 
-    handleLogout 
+    unreadCount,
+    navigate,
+    handleLogout
 }) => {
     const {
         token: { colorBgContainer },
@@ -50,17 +50,17 @@ const HeaderBar = ({
                 <div style={{ padding: '24px 16px', textAlign: 'center', color: '#999' }}>No notifications</div>
             )}
             <div style={{ textAlign: 'center', padding: '12px 16px 0 16px', borderTop: notifications && notifications.length > 0 ? '1px solid #f0f0f0' : 'none' }}>
-                <Button type="link" onClick={() => navigate('/notifications')} style={{ padding: 0 }}>View All Notifications</Button>
+                <Button type="link" onClick={() => navigate('/alerts')} style={{ padding: 0 }}>View All Notifications</Button>
             </div>
         </div>
     );
 
     return (
-        <Header style={{ 
-            padding: '0 24px 0 0', 
-            background: colorBgContainer, 
-            display: 'flex', 
-            justifyContent: 'space-between', 
+        <Header style={{
+            padding: '0 24px 0 0',
+            background: colorBgContainer,
+            display: 'flex',
+            justifyContent: 'space-between',
             alignItems: 'center',
             boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
             zIndex: 1000
@@ -82,10 +82,10 @@ const HeaderBar = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Space size="large">
                     {/* 1. Notifications Icon (Now First) */}
-                    <Popover 
-                        content={notificationContent} 
-                        title={<div style={{ padding: '8px 16px', borderBottom: '1px solid #f0f0f0', fontWeight: 'bold' }}>Notifications</div>} 
-                        trigger="hover" 
+                    <Popover
+                        content={notificationContent}
+                        title={<div style={{ padding: '8px 16px', borderBottom: '1px solid #f0f0f0', fontWeight: 'bold' }}>Notifications</div>}
+                        trigger="hover"
                         placement="bottomRight"
                         overlayInnerStyle={{ padding: 0 }}
                     >
@@ -94,7 +94,7 @@ const HeaderBar = ({
                                 type="text"
                                 shape="circle"
                                 icon={<BellOutlined style={{ fontSize: '18px' }} />}
-                                onClick={() => navigate('/notifications')}
+                                onClick={() => navigate('/alerts')}
                             />
                         </Badge>
                     </Popover>

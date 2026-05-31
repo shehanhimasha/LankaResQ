@@ -12,7 +12,7 @@ const Home = () => {
     const {
         totalRequests,
         pendingRequests,
-        processingRequests,
+        inProgressRequests,
         completedRequests,
         statusData,
         selectedMonth,
@@ -28,16 +28,16 @@ const Home = () => {
         <div style={{ padding: '24px', background: colorBgContainer, borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Title level={3} style={{ marginBottom: 24 }}>Dashboard Overview</Title>
 
-            <StatsCards 
-                totalRequests={totalRequests} 
-                pendingRequests={pendingRequests} 
-                processingRequests={processingRequests} 
-                completedRequests={completedRequests} 
+            <StatsCards
+                totalRequests={totalRequests}
+                pendingRequests={pendingRequests}
+                inProgressRequests={inProgressRequests}
+                completedRequests={completedRequests}
             />
 
             <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
                 <Col xs={24} lg={15}>
-                    <RequestsLineChart 
+                    <RequestsLineChart
                         filteredChartData={filteredChartData}
                         monthOptions={monthOptions}
                         selectedMonth={selectedMonth}
@@ -45,14 +45,14 @@ const Home = () => {
                     />
                 </Col>
                 <Col xs={24} lg={9}>
-                    <StatusPieChart 
+                    <StatusPieChart
                         statusData={statusData}
                         totalRequests={totalRequests}
                     />
                 </Col>
             </Row>
 
-            <RecentRequestsTable 
+            <RecentRequestsTable
                 sortedRequests={sortedRequests}
             />
         </div>
