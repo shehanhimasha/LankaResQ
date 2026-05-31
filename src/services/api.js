@@ -8,28 +8,34 @@ const api = axios.create({
     },
 });
 
-// Attach Authorization header if token is available in localStorage
-api.interceptors.request.use((config) => {
-    try {
-        const stored = localStorage.getItem('user');
-        if (stored) {
-            const user = JSON.parse(stored);
-            const token = user.token || user.accessToken || localStorage.getItem('authToken');
-            if (token) {
-                config.headers = config.headers || {};
-                config.headers['Authorization'] = `Bearer ${token}`;
+api.interceptors.request.use(
+    (config) => {
+        try {
+            const stored = localStorage.getItem('user');
+
+            if (stored) {
+                const user = JSON.parse(stored);
+
+                const token =
+                    user.token ||
+                    user.accessToken ||
+                    localStorage.getItem('authToken');
+
+                if (token) {
+                    config.headers.Authorization = `Bearer ${token}`;
+                }
+            } else {
+                const token = localStorage.getItem('authToken');
+
+                if (token) {
+                    config.headers.Authorization = `Bearer ${token}`;
+                }
             }
-        } else {
-            const token = localStorage.getItem('authToken');
-            if (token) {
-                config.headers = config.headers || {};
-                config.headers['Authorization'] = `Bearer ${token}`;
-            }
-        }
-    } catch (e) {
-        // ignore
-    }
-    return config;
-}, (error) => Promise.reject(error));
+        } catch (e) {}
+
+        return config;
+    },
+    (error) => Promise.reject(error)
+);
 
 export default api;
